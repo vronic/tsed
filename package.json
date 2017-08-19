@@ -84,6 +84,9 @@
   },
   "release": {
     "debug": false,
-    "branch": "1.4.x"
+    "branch": "legacy"
+  },
+  "publishConfig":{
+    "tag": "legacy"
   }
 }

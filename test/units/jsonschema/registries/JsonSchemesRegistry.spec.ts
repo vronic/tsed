@@ -71,6 +71,23 @@ describe("JsonSchemesRegistry", () => {
           },
           uint: {
             type: "number"
+          },
+
+          types: {
+            oneOf: [{type: "boolean"}, {$ref: "#/definitions/JsonFoo"}]
+          },
+
+          typesArray: {
+            type: "array",
+            items: {
+              oneOf: [{type: "boolean"}, {$ref: "#/definitions/JsonFoo"}]
+            }
+          },
+
+          typesMap: {
+            additionalProperties: {
+              oneOf: [{type: "boolean"}, {$ref: "#/definitions/JsonFoo"}]
+            }
           }
         },
         required: ["test", "foo"],

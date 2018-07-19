@@ -99,6 +99,15 @@ export class JsonFoo2 {
   @IgnoreProperty()
   password: string;
 
+  @PropertyTypes(Boolean, JsonFoo)
+  types: boolean | JsonFoo;
+
+  @PropertyTypes(Boolean, JsonFoo)
+  typesArray: (boolean | JsonFoo)[];
+
+  @PropertyTypes(Boolean, JsonFoo)
+  typesMap: Map<string, boolean | JsonFoo>;
+
   method() {}
 }
 

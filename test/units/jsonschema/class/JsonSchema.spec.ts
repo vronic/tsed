@@ -1,12 +1,14 @@
+import * as Ajv from "ajv";
 import {JsonSchema} from "../../../../packages/common/src/jsonschema/class/JsonSchema";
 import {expect} from "../../../tools";
 
 describe("JsonSchema", () => {
+  const ajv = new Ajv({});
+
   describe("toCollection()", () => {
     describe("when the type is string", () => {
       before(() => {
-        this.schema = new JsonSchema();
-        this.schema.type = String;
+        this.schema = new JsonSchema({type: String});
         this.schema.toCollection(Array);
       });
 
@@ -18,12 +20,19 @@ describe("JsonSchema", () => {
           }
         });
       });
+
+      it("should validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), ["test"])).to.eq(true);
+      });
+
+      it("shouldn't validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), [1])).to.eq(false);
+      });
     });
 
     describe("when the type is object", () => {
       before(() => {
-        this.schema = new JsonSchema();
-        this.schema.type = Object;
+        this.schema = new JsonSchema({type: Object});
         this.schema.toCollection(Array);
       });
 
@@ -35,25 +44,40 @@ describe("JsonSchema", () => {
           }
         });
       });
+
+      it("should validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), [{test: "test"}])).to.eq(true);
+      });
+
+      it("shouldn't validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), [1])).to.eq(false);
+      });
     });
 
     describe("when the type is number or string", () => {
       before(() => {
-        this.schema = new JsonSchema();
-        this.schema.type = ["number", "string"];
+        this.schema = new JsonSchema({type: ["number", "string"]});
       });
 
       it("should have a correct jsonSchema", () => {
         expect(this.schema.toJSON()).to.deep.eq({
-          type: ["number", "string"]
+          oneOf: [{type: "number"}, {type: "string"}]
         });
+      });
+
+      it("should validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), 1)).to.eq(true);
+        expect(ajv.validate(this.schema.toJSON(), "1")).to.eq(true);
+      });
+
+      it("shouldn't validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), false)).to.eq(false);
       });
     });
 
     describe("when the type is an array number or string (1)", () => {
       before(() => {
-        this.schema = new JsonSchema();
-        this.schema.type = ["number", "string"];
+        this.schema = new JsonSchema({type: ["number", "string"]});
         this.schema.toCollection(Array);
       });
 
@@ -61,16 +85,23 @@ describe("JsonSchema", () => {
         expect(this.schema.toJSON()).to.deep.eq({
           type: "array",
           items: {
-            type: ["number", "string"]
+            oneOf: [{type: "number"}, {type: "string"}]
           }
         });
+      });
+
+      it("should validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), [1, "1"])).to.eq(true);
+      });
+
+      it("shouldn't validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), false)).to.eq(false);
       });
     });
 
     describe("when the type is an array of number or string (2)", () => {
       before(() => {
-        this.schema = new JsonSchema();
-        this.schema.type = Object;
+        this.schema = new JsonSchema({type: Object});
         this.schema.toCollection(Array);
         this.schema.mapper.type = ["number", "string"];
       });
@@ -79,16 +110,23 @@ describe("JsonSchema", () => {
         expect(this.schema.toJSON()).to.deep.eq({
           type: "array",
           items: {
-            type: ["number", "string"]
+            oneOf: [{type: "number"}, {type: "string"}]
           }
         });
+      });
+
+      it("should validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), [1, "1"])).to.eq(true);
+      });
+
+      it("shouldn't validate data", () => {
+        expect(ajv.validate(this.schema.toJSON(), false)).to.eq(false);
       });
     });
 
     describe("when there have already data", () => {
       before(() => {
-        this.schema = new JsonSchema();
-        this.schema.type = Object;
+        this.schema = new JsonSchema({type: Object});
         this.schema.mapValue("type", ["number", "string"]);
         this.schema.mapValue("enum", ["1", "2"]);
 
@@ -141,8 +179,10 @@ describe("JsonSchema", () => {
 
     describe("when the schema is a Set", () => {
       before(() => {
-        this.schema = new JsonSchema();
-        this.schema.type = String;
+        this.schema = new JsonSchema({
+          type: String
+        });
+
         this.schema.toCollection(Set);
         this.schema.mapper.enum = ["1", "2"];
       });
@@ -203,6 +243,49 @@ describe("JsonSchema", () => {
     });
     it("should return object", () => {
       expect(this.jsonSchema.toJSON()).to.deep.eq({type: "object", description: "description"});
+    });
+  });
+
+  describe("with oneOf", () => {
+    describe("primitive", () => {
+      before(() => {
+        this.jsonSchema = new JsonSchema({
+          description: "description",
+          oneOf: [{type: Boolean}, {type: Number}]
+        });
+      });
+      it("should return object", () => {
+        expect(this.jsonSchema.toJSON()).to.deep.eq({
+          description: "description",
+          oneOf: [
+            {
+              type: "boolean"
+            },
+            {
+              type: "number"
+            }
+          ]
+        });
+      });
+    });
+
+    describe("primitive + Collection", () => {
+      before(() => {
+        this.jsonSchema = new JsonSchema({
+          description: "description",
+          oneOf: [{type: Boolean}, {type: Number}]
+        });
+        this.jsonSchema.toCollection(Array);
+      });
+      it("should return object", () => {
+        expect(this.jsonSchema.toJSON()).to.deep.eq({
+          description: "description",
+          type: "array",
+          items: {
+            oneOf: [{type: Boolean}, {type: Number}]
+          }
+        });
+      });
     });
   });
 });

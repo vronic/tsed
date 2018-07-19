@@ -1,5 +1,6 @@
 import {ancestorsOf, deepExtends, isClass, Registry, Store, Type} from "@tsed/core";
 import {JSONSchema6} from "json-schema";
+import {EntityDescription} from "../../../core/class/EntityDescription";
 import {JsonSchema} from "../class/JsonSchema";
 
 const JSON_SCHEMA_FIELDS = ["additionalItems", "items", "additionalProperties", "properties", "dependencies", "oneOf"];
@@ -9,25 +10,37 @@ const toObj = (o: any) => JSON.parse(JSON.stringify(o));
 export class JsonSchemaRegistry extends Registry<any, Partial<JsonSchema>> {
   /**
    *
-   * @param {Type<any>} target
-   * @param {string} propertyKey
-   * @param type
-   * @param collectionType
    * @returns {JsonSchema}
+   * @param entity
    */
-  property(target: Type<any>, propertyKey: string, type: any, collectionType?: any): JsonSchema {
-    if (!this.has(target)) {
-      this.merge(target, {
-        type: target
+  createFromEntity(entity: EntityDescription): JsonSchema {
+    if (!this.has(entity.target)) {
+      this.merge(entity.target, {
+        type: entity.target
       });
-      Store.from(target).set("schema", this.get(target));
+      Store.from(entity.target).set("schema", this.get(entity.target));
     }
 
-    const schema = this.get(target);
+    const schema = this.get(entity.target);
     schema.properties = schema.properties || {};
-    schema.properties[propertyKey] = JsonSchemaRegistry.createJsonSchema(schema.properties[propertyKey], type, collectionType);
 
-    return schema.properties[propertyKey];
+    if (entity.types && entity.types.length) {
+      const subSchema = schema.properties[entity.propertyKey] || new JsonSchema();
+      const oneOf = entity.types.map(type => JsonSchemaRegistry.createJsonSchema(new JsonSchema(), type));
+      // if (entity.collectionType) {
+      //  schema.properties[entity.propertyKey].toCollection(entity.collectionType);
+      // }
+      subSchema.type = undefined;
+      schema.properties[entity.propertyKey].oneOf = oneOf;
+    } else {
+      schema.properties[entity.propertyKey] = JsonSchemaRegistry.createJsonSchema(
+        schema.properties[entity.propertyKey],
+        entity.type,
+        entity.collectionType
+      );
+    }
+
+    return schema.properties[entity.propertyKey];
   }
 
   /**

@@ -2,7 +2,9 @@ import {
   deepExtends,
   descriptorOf,
   Enumerable,
+  isArray,
   isArrayOrArrayClass,
+  isBoolean,
   isDate,
   isPrimitiveOrPrimitiveClass,
   nameOf,
@@ -21,6 +23,11 @@ export const JSON_TYPES = ["string", "number", "integer", "boolean", "object", "
  * @type {string[]}
  */
 export const AUTO_MAP_KEYS: string[] = [];
+/**
+ *
+ * @type {any[]}
+ */
+export const EXCLUDED_KEYS: string[] = [];
 
 /**
  * Internal use only.
@@ -39,10 +46,35 @@ function AutoMapKey(target: any, propertyKey: string): any {
   return descriptor;
 }
 
+function Exclude(target: any, propertyKey: string): any {
+  EXCLUDED_KEYS.push(propertyKey);
+}
+
+export interface IJsonSchema extends JSONSchema6 {
+  [key: string]: any;
+
+  /**
+   *
+   * @returns {any}
+   */
+  toObject(): any;
+
+  /**
+   *
+   * @returns {any}
+   */
+  toJSON(): any;
+}
+
+export interface IJsonSchemaCollection {
+  [key: string]: IJsonSchema;
+}
 export class JsonSchema implements JSONSchema6 {
+  @Exclude
   @NotEnumerable()
   private _refName: string;
 
+  @Exclude
   @NotEnumerable()
   private _isCollection: boolean;
   /**
@@ -52,6 +84,7 @@ export class JsonSchema implements JSONSchema6 {
   @Enumerable()
   $id: string;
 
+  @Exclude
   @NotEnumerable()
   private _type: JSONSchema6TypeName | JSONSchema6TypeName[];
 
@@ -76,8 +109,7 @@ export class JsonSchema implements JSONSchema6 {
   @Enumerable()
   additionalItems: boolean | JSONSchema6;
 
-  @Enumerable()
-  items: JsonSchema;
+  @Enumerable() private _items: IJsonSchema;
 
   @Enumerable()
   maxItems: number;
@@ -98,31 +130,31 @@ export class JsonSchema implements JSONSchema6 {
   required: any | string[];
 
   @Enumerable()
-  properties: {[key: string]: JSONSchema6};
+  _properties: {[key: string]: JSONSchema6};
 
   @Enumerable()
-  additionalProperties: JsonSchema;
+  _additionalProperties: JsonSchema;
 
   @Enumerable()
-  definitions: {[p: string]: JSONSchema6};
+  _definitions: {[p: string]: JSONSchema6};
 
   @Enumerable()
-  patternProperties: {[p: string]: JSONSchema6};
+  _patternProperties: {[p: string]: JSONSchema6};
 
   @Enumerable()
-  dependencies: {[p: string]: JSONSchema6 | string[]};
+  _dependencies: {[p: string]: JSONSchema6 | string[]};
 
   @Enumerable()
-  allOf: JSONSchema6[];
+  _allOf: JSONSchema6[];
 
   @Enumerable()
-  anyOf: JSONSchema6[];
+  _anyOf: JSONSchema6[];
 
   @Enumerable()
-  oneOf: JSONSchema6[];
+  _oneOf: JSONSchema6[];
 
   @Enumerable()
-  not: JSONSchema6;
+  _not: JSONSchema6;
 
   @Enumerable()
   extends: string | string[];
@@ -157,11 +189,11 @@ export class JsonSchema implements JSONSchema6 {
   @AutoMapKey
   enum: JSONSchema6Type[];
 
-  private _proxy: any;
+  @Exclude private _proxy: any;
 
   [key: string]: any;
 
-  constructor() {
+  constructor(obj: any = {}) {
     this._proxy = new Proxy<JsonSchema>(this, {
       set(schema: JsonSchema, propertyKey: any, value: any) {
         schema.mapValue(propertyKey, value);
@@ -169,6 +201,216 @@ export class JsonSchema implements JSONSchema6 {
         return true;
       }
     } as any);
+
+    this.merge(obj);
+  }
+
+  /**
+   * May only be defined when "items" is defined, and is a tuple of JSONSchemas.
+   *
+   * This provides a definition for additional items in an array instance
+   * when tuple definitions of the items is provided.  This can be false
+   * to indicate additional items in the array are not allowed, or it can
+   * be a schema that defines the schema of the additional items.
+   *
+   * @see https://tools.ietf.org/html/draft-zyp-json-schema-03#section-5.6
+   * @returns {boolean | JSONSchema6}
+   */
+  get additionalItems(): boolean | IJsonSchema {
+    return this._additionalItems;
+  }
+
+  /**
+   *
+   * @param {boolean | JSONSchema6} value
+   */
+  set additionalItems(value: boolean | IJsonSchema) {
+    if (isBoolean(value)) {
+      this._additionalItems = value as boolean;
+    } else {
+      this._additionalItems = JsonSchema.from(value);
+    }
+  }
+
+  /**
+   *
+   * @returns {JsonSchema}
+   */
+  get additionalProperties(): any | IJsonSchema {
+    return this._additionalProperties;
+  }
+
+  /**
+   *
+   * @param {JsonSchema} value
+   */
+  set additionalProperties(value: any) {
+    this._additionalProperties = JsonSchema.from(value);
+  }
+
+  /**
+   *
+   * @returns {IJsonSchemaCollection}
+   */
+  get properties(): IJsonSchemaCollection {
+    return this._properties;
+  }
+
+  /**
+   *
+   * @param value
+   */
+  set properties(value: IJsonSchemaCollection) {
+    const obj: any = {};
+    Object.keys(value).forEach(key => {
+      obj[key] = JsonSchema.from(value[key]);
+    });
+
+    this._properties = obj;
+  }
+
+  /**
+   *
+   * @returns {IJsonSchema}
+   */
+  get not(): IJsonSchema {
+    return this._not;
+  }
+
+  /**
+   *
+   * @param {IJsonSchema} value
+   */
+  set not(value: IJsonSchema) {
+    this._not = JsonSchema.from(value);
+  }
+
+  /**
+   *
+   * @returns {IJsonSchema[]}
+   */
+  @AutoMapKey
+  get oneOf(): IJsonSchema[] {
+    return this._oneOf;
+  }
+
+  /**
+   *
+   * @param {IJsonSchema[]} value
+   */
+  set oneOf(value: IJsonSchema[]) {
+    this._oneOf = value.map(item => JsonSchema.from(item));
+  }
+
+  /**
+   *
+   * @returns {IJsonSchema[]}
+   */
+  get anyOf(): IJsonSchema[] {
+    return this._anyOf;
+  }
+
+  /**
+   *
+   * @param {IJsonSchema[]} value
+   */
+  set anyOf(value: IJsonSchema[]) {
+    this._anyOf = value.map(item => JsonSchema.from(item));
+  }
+
+  /**
+   *
+   * @returns {IJsonSchema[]}
+   */
+  get allOf(): IJsonSchema[] {
+    return this._allOf;
+  }
+
+  /**
+   *
+   * @param {IJsonSchema[]} value
+   */
+  set allOf(value: IJsonSchema[]) {
+    this._allOf = value.map(item => JsonSchema.from(item));
+  }
+
+  /**
+   *
+   * @returns {Object}
+   */
+  get dependencies(): {[p: string]: IJsonSchema | string[]} {
+    return this._dependencies;
+  }
+
+  /**
+   *
+   * @param {Object} value
+   */
+  set dependencies(value: {[p: string]: IJsonSchema | string[]}) {
+    const obj: any = {};
+    Object.keys(value).forEach(key => {
+      obj[key] = JsonSchema.from(value[key]);
+    });
+
+    this._dependencies = obj;
+  }
+
+  /**
+   *
+   * @returns {Object}
+   */
+  get patternProperties(): IJsonSchemaCollection {
+    return this._patternProperties;
+  }
+
+  /**
+   *
+   * @param {Object} value
+   */
+  set patternProperties(value: IJsonSchemaCollection) {
+    const obj: any = {};
+    Object.keys(value).forEach(key => {
+      obj[key] = JsonSchema.from(value[key]);
+    });
+
+    this._patternProperties = obj;
+  }
+
+  /**
+   *
+   * @returns {IJsonSchemaCollection}
+   */
+  get definitions(): IJsonSchemaCollection {
+    return this._definitions;
+  }
+
+  /**
+   *
+   * @param {IJsonSchemaCollection} value
+   */
+  set definitions(value: IJsonSchemaCollection) {
+    const obj: any = {};
+    Object.keys(value).forEach(key => {
+      obj[key] = JsonSchema.from(value[key]);
+    });
+
+    this._definitions = obj;
+  }
+
+  /**
+   *
+   * @returns {IJsonSchema}
+   */
+  get items(): IJsonSchema {
+    return this._items;
+  }
+
+  /**
+   *
+   * @param {IJsonSchema} value
+   */
+  set items(value: IJsonSchema) {
+    this._items = JsonSchema.from(value);
   }
 
   /**
@@ -176,7 +418,7 @@ export class JsonSchema implements JSONSchema6 {
    * @returns {JSONSchema6}
    */
   @NotEnumerable()
-  get mapper(): JSONSchema6 {
+  get mapper(): IJsonSchema {
     return this._proxy;
   }
 
@@ -195,8 +437,14 @@ export class JsonSchema implements JSONSchema6 {
   @Enumerable()
   set type(value: any | JSONSchema6TypeName | JSONSchema6TypeName[]) {
     if (value) {
-      this._refName = nameOf(value);
-      this._type = JsonSchema.getJsonType(value);
+      if (isArray(value)) {
+        value = [].concat(value).map(item => ({type: item}));
+
+        this.oneOf = value as IJsonSchema[];
+      } else {
+        this._refName = nameOf(value);
+        this._type = JsonSchema.getJsonType(value);
+      }
     } else {
       delete this._refName;
       delete this._type;
@@ -247,9 +495,10 @@ export class JsonSchema implements JSONSchema6 {
   mapValue(key: string, value: any) {
     switch (this.schemaType) {
       case "collection":
-        this.additionalProperties[key] = value;
+        (this.additionalProperties as any)[key] = value;
         break;
       case "array":
+        console.log(key, value);
         this.items[key] = value;
         break;
       default:
@@ -265,17 +514,20 @@ export class JsonSchema implements JSONSchema6 {
     this._isCollection = true;
 
     if (isArrayOrArrayClass(collectionType)) {
-      this.items = this.items || new JsonSchema();
-      this.items.type = this._type;
+      this._items = this._items || new JsonSchema();
+      console.log("===>", this._type);
+      if (this._type) {
+        this._items.type = this._type;
+      }
       this._type = "array";
 
-      this.forwardKeysTo(this, "items");
+      this.forwardKeysTo(this, "_items");
     } else {
-      this.additionalProperties = new JsonSchema();
-      this.additionalProperties.type = this._type;
+      this._additionalProperties = new JsonSchema();
+      this._additionalProperties.type = this._type;
       delete this._type;
 
-      this.forwardKeysTo(this, "additionalProperties");
+      this.forwardKeysTo(this, "_additionalProperties");
     }
   }
 
@@ -288,6 +540,7 @@ export class JsonSchema implements JSONSchema6 {
     AUTO_MAP_KEYS.forEach(key => {
       if (instance[key]) {
         instance[property][key] = instance[key];
+        instance[`_${key}`] = undefined;
         delete instance[key];
       }
     });
@@ -298,25 +551,43 @@ export class JsonSchema implements JSONSchema6 {
    * @returns {{}}
    */
   toJSON() {
-    const obj: any = {};
+    const clone = (input: any): any => {
+      if (input === undefined) {
+        return input;
+      }
 
-    for (const key in this) {
-      if (!key.match(/^_/) && typeof this[key] !== "function") {
-        const value: any = this[key];
+      if (isPrimitiveOrPrimitiveClass(input)) {
+        return input;
+      }
 
-        if (value !== undefined) {
-          if (value instanceof JsonSchema) {
-            obj[key] = value.toJSON();
-          } else {
-            obj[key] = value;
+      if (input instanceof JsonSchema && input !== this) {
+        return input.toJSON();
+      }
+
+      const obj: any = isArray(input) ? [] : {};
+
+      for (const key in input) {
+        const propertyKey = key.replace("_", "");
+
+        if (EXCLUDED_KEYS.indexOf(key) === -1 && typeof input[propertyKey] !== "function") {
+          const value: any = input[propertyKey];
+
+          if (value !== undefined) {
+            obj[propertyKey] = clone(value);
           }
         }
       }
-    }
 
-    return obj;
+      return obj;
+    };
+
+    return clone(this);
   }
 
+  /**
+   *
+   * @returns {any}
+   */
   toObject() {
     return JSON.parse(JSON.stringify(this.toJSON()));
   }
@@ -326,7 +597,17 @@ export class JsonSchema implements JSONSchema6 {
    * @param obj
    */
   merge(obj: any): this {
-    deepExtends(this, obj);
+    const newJsonSchema = (collection: any[], value: JSONSchema6) => {
+      collection.push(new JsonSchema(value));
+
+      return collection;
+    };
+
+    deepExtends(this, obj, {
+      oneOf: newJsonSchema,
+      allOf: newJsonSchema,
+      anyOf: newJsonSchema
+    });
 
     return this;
   }
@@ -366,9 +647,17 @@ export class JsonSchema implements JSONSchema6 {
    * @returns {JSONSchema6}
    */
   static ref(type: any): JsonSchema {
-    const schema = new JsonSchema();
-    schema.$ref = `#/definitions/${nameOf(type)}`;
+    return new JsonSchema({
+      $ref: `#/definitions/${nameOf(type)}`
+    });
+  }
 
-    return schema;
+  /**
+   *
+   * @param value
+   * @returns {JsonSchema}
+   */
+  static from(value: any): JsonSchema {
+    return value instanceof JsonSchema ? value : new JsonSchema(value);
   }
 }

@@ -39,6 +39,10 @@ const spec = require(`${rootDir}/spec/swagger.default.json`);
     "/": "${rootDir}/views"
   },
 
+  mongoose: {
+    url: "mongodb://127.0.0.1:27017/test"
+  },
+
   swagger: [
     {
       path: "/api-doc",

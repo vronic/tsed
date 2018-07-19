@@ -10,7 +10,7 @@ import {OuterService} from "../../services/OuterService";
 @Hidden()
 @Docs("hidden")
 export class ProductsCtrl {
-  constructor(public innerService: InnerService, public outerService: OuterService) {
+  constructor(public innerService: InnerService, public outerService: OuterService, @Inject(Product) public product: MongooseModel<Product>, @Inject(Variant) public variant: MongooseModel<Variant>) {
     $log.debug("Controller New Instance");
     $log.debug("innerService == outerService.innerService? ", innerService === outerService.innerService);
   }
@@ -22,5 +22,27 @@ export class ProductsCtrl {
 
   $onDestroy() {
     $log.debug("Destroy controller");
+  }
+
+
+  @Post("/")
+  async save(@BodyParams() body: Product) {
+    const product = new this.product(body);
+
+    return await product.save();
+  }
+
+  @Post("/variant")
+  async saveVariant(@BodyParams() body: Variant) {
+    const variant = new this.variant(body);
+
+    return await variant.save();
+  }
+
+  @Get("/list")
+  async getList() {
+    console.log("this.product.find({})", await this.product.find({}));
+
+    return {products: await this.product.find({})};
   }
 }

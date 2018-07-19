@@ -1,6 +1,8 @@
-import {Allow, ConverterService, Property, PropertyType, Required} from "@tsed/common";
+import {Allow, ConverterService, Default, IgnoreProperty, Property, PropertyType, Required} from "@tsed/common";
 import {Model, MongooseModel} from "@tsed/mongoose";
 import {inject} from "@tsed/testing";
+import {Ref} from "../../../src/mongoose/decorators";
+import {Description} from "../../../src/swagger";
 import {expect} from "../../tools";
 
 @Model()
@@ -27,6 +29,52 @@ export class ServiceModel {
   _id: string;
 
   @PropertyType(AdminModel) admins: AdminModel[];
+}
+
+@Model()
+class Product {
+  @IgnoreProperty() _id?: string;
+
+  @Required() title: string;
+
+  @Required() price: number;
+
+  @Default(0)
+  discount: number;
+
+  @Default(false)
+  availability: boolean;
+
+  @Default(false)
+  @Description("True when the default shipping settings are set")
+  shipping: boolean;
+
+  @Property() description: string;
+
+  @Default(false)
+  draft: boolean;
+
+  @Ref("Variant") variants: Variant[];
+}
+
+@Model({name: "product_variants"})
+export class Variant {
+  @IgnoreProperty() _id?: string;
+
+  // @IgnoreProperty()
+  // __v?: number;
+
+  @Property() name: string;
+
+  @PropertyType(String) options: string[];
+
+  @Default("Infinity") quantity?: number;
+
+  @Property() sku: string;
+
+  @Default(0)
+  @Description("Describes how much to be added on top of the base price")
+  additional?: number;
 }
 
 describe("Mongoose", () => {
@@ -101,6 +149,33 @@ describe("Mongoose", () => {
       expect(this.converted.admins[0])
         .to.have.property("role")
         .that.is.a("string");
+    });
+  });
+
+  describe("Product (ignore decorator)", () => {
+    before(
+      inject(
+        [Product, ConverterService],
+        (product: MongooseModel<Product>, variant: MongooseModel<Product>, converterService: ConverterService) => {
+          try {
+            this.converted = converterService.serialize({
+              products: [
+                new product({
+                  title: "title",
+                  price: 10,
+                  variant: [{}]
+                })
+              ]
+            });
+          } catch (er) {
+            console.error(er);
+          }
+        }
+      )
+    );
+
+    it("should return a serialized object", () => {
+      expect(this.converted).to.eq(true);
     });
   });
 });

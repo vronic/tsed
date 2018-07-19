@@ -37,6 +37,10 @@ export function Ref(type: string | any) {
     if (typeof type !== "string") {
       propertyMetadata.type = type;
     }
+
+    // Types()
+    // propertyMetadata.type = Schema.Types.ObjectId;
+
     propertyMetadata.store.merge(MONGOOSE_SCHEMA, {
       type: Schema.Types.ObjectId,
       ref: typeof type === "string" ? type : Store.from(type).get(MONGOOSE_MODEL_NAME)

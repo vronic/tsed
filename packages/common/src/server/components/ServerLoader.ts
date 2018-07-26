@@ -270,7 +270,6 @@ export abstract class ServerLoader implements IServerLifecycle {
    */
   public async start(): Promise<any> {
     try {
-      const start = new Date();
       await this.loadSettingsAndInjector();
       await this.loadMiddlewares();
       await this.startServers();

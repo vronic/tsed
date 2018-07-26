@@ -1,13 +1,14 @@
 import {Env, getValue, setValue} from "@tsed/core";
 import {ProviderScope, ProviderType} from "../interfaces";
 import {IBootstrapSettings} from "../interfaces/IBootstrapSettings";
-import {registerFactory} from "../registries/ProviderRegistry";
+import {registerProvider} from "../registries/ProviderRegistry";
 
-export class SettingsService extends Map<string, any> {
+export class SettingsService {
   [key: string]: any;
 
+  protected _map = new Map<string, any>();
+
   constructor() {
-    super();
     this.rootDir = process.cwd();
     this.env = (process.env.NODE_ENV as Env) || Env.DEV;
     this.exclude = ["**/*.spec.ts", "**/*.spec.js"];
@@ -19,7 +20,7 @@ export class SettingsService extends Map<string, any> {
    * @returns {any}
    */
   get rootDir() {
-    return this.get("rootDir");
+    return this._map.get("rootDir");
   }
 
   /**
@@ -27,7 +28,7 @@ export class SettingsService extends Map<string, any> {
    * @param value
    */
   set rootDir(value: string) {
-    this.set("rootDir", value);
+    this._map.set("rootDir", value);
   }
 
   /**
@@ -35,7 +36,7 @@ export class SettingsService extends Map<string, any> {
    * @returns {Map<string, any>}
    */
   get env(): Env {
-    return this.get("env");
+    return this._map.get("env");
   }
 
   /**
@@ -43,7 +44,7 @@ export class SettingsService extends Map<string, any> {
    * @param value
    */
   set env(value: Env) {
-    this.set("env", value);
+    this._map.set("env", value);
   }
 
   /**
@@ -51,7 +52,7 @@ export class SettingsService extends Map<string, any> {
    * @returns {undefined|any}
    */
   get componentsScan(): string[] {
-    return this.get("componentsScan") || [];
+    return this._map.get("componentsScan") || [];
   }
 
   /**
@@ -59,23 +60,23 @@ export class SettingsService extends Map<string, any> {
    * @param value
    */
   set componentsScan(value: string[]) {
-    this.set("componentsScan", value);
+    this._map.set("componentsScan", value);
   }
 
   set exclude(exclude: string[]) {
-    this.set("exclude", exclude);
+    this._map.set("exclude", exclude);
   }
 
   get exclude() {
-    return this.get("exclude") || [];
+    return this._map.get("exclude") || [];
   }
 
   get scopes(): {[key: string]: ProviderScope} {
-    return this.get("scopes") || {};
+    return this._map.get("scopes") || {};
   }
 
   set scopes(scopes: {[key: string]: ProviderScope}) {
-    this.set("scopes", scopes);
+    this._map.set("scopes", scopes);
   }
 
   scopeOf(providerType: ProviderType) {
@@ -89,7 +90,7 @@ export class SettingsService extends Map<string, any> {
    */
   set(propertyKey: string | IBootstrapSettings, value?: any): this {
     if (typeof propertyKey === "string") {
-      setValue(propertyKey, value, this);
+      setValue(propertyKey, value, this._map);
     } else {
       const self: any = this;
 
@@ -99,11 +100,11 @@ export class SettingsService extends Map<string, any> {
         if (descriptor && ["set", "get", "providers"].indexOf(key) === -1) {
           self[key] = propertyKey[key];
         } else {
-          this.set(key, propertyKey[key]);
+          this._map.set(key, propertyKey[key]);
         }
       });
 
-      this.forEach((value, key) => {
+      this._map.forEach((value, key) => {
         this.set(key, this.resolve(value));
       });
     }
@@ -117,7 +118,11 @@ export class SettingsService extends Map<string, any> {
    * @returns {undefined|any}
    */
   get<T>(propertyKey: string): T {
-    return this.resolve(getValue(propertyKey, this));
+    return this.resolve(
+      getValue(propertyKey, {
+        get: (key: any) => this._map.get(key)
+      })
+    );
   }
 
   /**
@@ -140,9 +145,22 @@ export class SettingsService extends Map<string, any> {
 
     return value;
   }
+
+  /**
+   *
+   * @param callbackfn
+   * @param thisArg
+   */
+  forEach(callbackfn: (value: any, key: string, map: Map<string, any>) => void, thisArg?: any) {
+    this._map.forEach(callbackfn, thisArg);
+  }
 }
 
 /**
  * Create the first service InjectorService
  */
-registerFactory(SettingsService);
+registerProvider({
+  provide: SettingsService,
+  scope: ProviderScope.SINGLETON,
+  global: true
+});

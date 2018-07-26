@@ -1,8 +1,8 @@
-import {Deprecated, Env, Metadata, setValue} from "@tsed/core";
+import {Deprecated, Env, Metadata} from "@tsed/core";
 import * as Https from "https";
 import {$log} from "ts-log-debug";
+import {OverrideService} from "../../di/decorators/overrideService";
 import {ProviderScope} from "../../di/interfaces/ProviderScope";
-import {registerFactory} from "../../di/registries/ProviderRegistry";
 import {SettingsService} from "../../di/services/SettingsService";
 import {SERVER_SETTINGS} from "../constants/index";
 import {IErrorsSettings, ILoggerSettings, IRouterSettings, IServerMountDirectories, IServerSettings} from "../interfaces/IServerSettings";
@@ -20,6 +20,8 @@ export let GlobalServerSettings: ServerSettingsService;
 /**
  * `ServerSettingsService` contains all information about [ServerLoader](/api/common/server/components/ServerLoader.md) configuration.
  */
+
+@OverrideService(SettingsService)
 export class ServerSettingsService extends SettingsService implements IServerSettings {
   constructor() {
     super();
@@ -56,22 +58,6 @@ export class ServerSettingsService extends SettingsService implements IServerSet
 
   set version(v: string) {
     this.set("version", v);
-  }
-
-  /**
-   *
-   * @returns {any}
-   */
-  get rootDir() {
-    return this.get("rootDir");
-  }
-
-  /**
-   *
-   * @param value
-   */
-  set rootDir(value: string) {
-    this.set("rootDir", value);
   }
 
   /**
@@ -144,22 +130,6 @@ export class ServerSettingsService extends SettingsService implements IServerSet
    */
   set uploadDir(value: string) {
     this.set("uploadDir", value);
-  }
-
-  /**
-   *
-   * @returns {Map<string, any>}
-   */
-  get env(): Env {
-    return this.get("env");
-  }
-
-  /**
-   *
-   * @param value
-   */
-  set env(value: Env) {
-    this.set("env", value);
   }
 
   /**
@@ -384,56 +354,6 @@ export class ServerSettingsService extends SettingsService implements IServerSet
 
   /**
    *
-   * @param propertyKey
-   * @param value
-   */
-  set(propertyKey: string | IServerSettings, value?: any): this {
-    if (typeof propertyKey === "string") {
-      setValue(propertyKey, value, this);
-    } else {
-      const self: any = this;
-
-      Object.keys(propertyKey).forEach(key => {
-        const descriptor = Object.getOwnPropertyDescriptor(ServerSettingsService.prototype, key);
-
-        if (descriptor && ["set", "get"].indexOf(key) === -1) {
-          self[key] = propertyKey[key];
-        } else {
-          this.set(key, propertyKey[key]);
-        }
-      });
-
-      this.forEach((value, key) => {
-        this.set(key, this.resolve(value));
-      });
-    }
-
-    return this;
-  }
-
-  /**
-   *
-   * @param value
-   * @returns {any}
-   */
-  resolve(value: any) {
-    if (typeof value === "object") {
-      Object.keys(value).forEach((k: string, i: number, m: any) => {
-        value[k] = this.resolve(value[k]);
-      });
-
-      return value;
-    }
-
-    if (typeof value === "string") {
-      return value.replace(/\${rootDir}/, this.rootDir);
-    }
-
-    return value;
-  }
-
-  /**
-   *
    * @returns {string|number}
    */
   getHttpPort(): {address: string; port: number} {
@@ -469,5 +389,3 @@ export class ServerSettingsService extends SettingsService implements IServerSet
  * @deprecated
  */
 export class ServerSettingsProvider extends ServerSettingsService {}
-
-registerFactory(ServerSettingsService);

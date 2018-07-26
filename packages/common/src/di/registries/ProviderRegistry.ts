@@ -1,6 +1,6 @@
 import {Provider} from "../class/Provider";
 import {Providers} from "../class/Providers";
-import {IProvider, ProviderType, TypedProvidersRegistry} from "../interfaces";
+import {IProvider, ProviderScope, ProviderType, TypedProvidersRegistry} from "../interfaces";
 
 /**
  *
@@ -19,16 +19,14 @@ export const ProviderRegistry: TypedProvidersRegistry = GlobalProviders.getRegis
  * @type {Registry<Provider<any>, IProvider<any>>}
  */
 GlobalProviders.createRegistry(ProviderType.SERVICE, Provider, {
-  injectable: true,
-  buildable: true
+  injectable: true
 });
 /**
  *`
  * @type {Registry<Provider<any>, IProvider<any>>}
  */
 GlobalProviders.createRegistry(ProviderType.FACTORY, Provider, {
-  injectable: true,
-  buildable: false
+  injectable: true
 });
 
 /**
@@ -94,7 +92,25 @@ GlobalProviders.createRegistry(ProviderType.FACTORY, Provider, {
  * ```
  *
  */
-export const registerFactory = GlobalProviders.createRegisterFn(ProviderType.FACTORY);
+export const registerFactory = (provider: any | IProvider<any>, instance?: any): void => {
+  if (!provider.provide) {
+    provider = {
+      provide: provider
+    };
+  }
+
+  provider = Object.assign(
+    {
+      scope: ProviderScope.SINGLETON,
+      useFactory() {
+        return instance;
+      }
+    },
+    provider,
+    {type: ProviderType.FACTORY}
+  );
+  this.getRegistry(ProviderType.FACTORY).merge(provider.provide, provider);
+};
 /**
  * Add a new service in the `ProviderRegistry`. This service will be built when `InjectorService` will be loaded.
  *

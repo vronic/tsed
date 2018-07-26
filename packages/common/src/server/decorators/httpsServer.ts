@@ -1,7 +1,8 @@
-import {registerFactory} from "../../di/registries/ProviderRegistry";
+import {ExpressApplication, ProviderScope, ServerSettingsService, SettingsService} from "@tsed/common";
 import {Type} from "@tsed/core";
 import * as Https from "https";
 import {Inject} from "../../di/decorators/inject";
+import {registerProvider} from "../../di/registries/ProviderRegistry";
 
 export interface IHttpsFactory {
   (target: Type<any>, targetKey: string, descriptor: TypedPropertyDescriptor<Function> | number): any;
@@ -41,4 +42,14 @@ export function HttpsServer(target: Type<any>, targetKey: string, descriptor: Ty
   return Inject(HttpsServer)(target, targetKey, descriptor);
 }
 
-registerFactory(HttpsServer);
+registerProvider({
+  provide: HttpsServer,
+  scope: ProviderScope.SINGLETON,
+  global: true,
+  deps: [SettingsService, ExpressApplication],
+  useFactory(settings: ServerSettingsService, expressApp: ExpressApplication) {
+    const options = settings.httpsOptions;
+
+    return Https.createServer(options, expressApp);
+  }
+});

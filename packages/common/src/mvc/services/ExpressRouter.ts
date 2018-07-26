@@ -1,3 +1,4 @@
+import {Provider, ProviderScope, registerProvider} from "@tsed/common";
 import {Type} from "@tsed/core";
 import * as Express from "express";
 import {Inject} from "../../di/decorators/inject";
@@ -32,3 +33,12 @@ export type ExpressRouter = Express.Router & {
 export function ExpressRouter(target: Type<any>, targetKey: string, descriptor: TypedPropertyDescriptor<Function> | number) {
   return Inject(ExpressRouter)(target, targetKey, descriptor);
 }
+
+registerProvider({
+  provide: ExpressRouter,
+  deps: [Provider],
+  scope: ProviderScope.INSTANCE,
+  useFactory: (provider: Provider<any>) => {
+    return provider.router;
+  }
+});

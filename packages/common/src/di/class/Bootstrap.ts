@@ -1,8 +1,8 @@
-import {IProvider, SettingsService} from "@tsed/common";
-import {isClass} from "@tsed/core";
+import {isClass, Type} from "@tsed/core";
 import * as globby from "globby";
 import * as Path from "path";
 import {$log} from "ts-log-debug";
+import {IProvider, SettingsService} from "../../..";
 import {IBootstrapSettings, IResolveProviderOptions} from "../interfaces/IBootstrapSettings";
 import {GlobalProviders} from "../registries/ProviderRegistry";
 import {InjectorService} from "../services/InjectorService";
@@ -11,13 +11,14 @@ import {InjectorService} from "../services/InjectorService";
  * Bootstrap a
  */
 export class Bootstrap {
+  protected loaded = false;
   private _injector: InjectorService;
-  private _imports: Promise<any>[] = [];
+  private _waiters: Promise<any>[] = [];
 
   /**
    *
    */
-  constructor(bootstrapSettings: IBootstrapSettings = {}) {
+  constructor(bootstrapSettings?: IBootstrapSettings) {
     this._injector = new InjectorService();
 
     if (bootstrapSettings) {
@@ -54,7 +55,11 @@ export class Bootstrap {
    * @returns {Promise<any>|Promise}
    */
   public async loadInjector(): Promise<any> {
-    await Promise.all(this._imports);
+    await this.wait();
+
+    if (this.loaded) {
+      return;
+    }
 
     // TODO OLD IMPLEMENTATION
     GlobalProviders.toArray().forEach(({token, provider}) => {
@@ -64,9 +69,33 @@ export class Bootstrap {
     });
 
     await this.injector.load();
+
+    this.loaded = true;
   }
 
   async resolveModules(modules: any[]) {}
+
+  /**
+   *
+   * @param file
+   */
+  async importSymbols(file: string): Promise<Type<any>[]> {
+    try {
+      const exports = await import(file);
+
+      return Object.keys(exports)
+        .map(key => exports[key])
+        .filter(token => isClass(token) && GlobalProviders.has(token))!;
+    } catch (er) {
+      /* istanbul ignore next */
+      $log.error(er);
+      /* istanbul ignore next */
+      process.exit(-1);
+    }
+
+    /* istanbul ignore next */
+    return Promise.resolve([]);
+  }
 
   /**
    * Scan and imports all files matching the pattern. See the document on the [Glob](https://www.npmjs.com/package/glob)
@@ -84,7 +113,9 @@ export class Bootstrap {
    *
    * Theses pattern scan all files in the directories controllers, services recursively.
    *
-   * !> On windows on can have an issue with the Glob pattern and the /. To solve it, build your path pattern with the module Path.
+   * ::: warning
+   * On windows on can have an issue with the Glob pattern and the /. To solve it, build your path pattern with the module Path.
+   * :::
    *
    * ```typescript
    * import path = require("path");
@@ -98,71 +129,36 @@ export class Bootstrap {
    * @returns {ServerLoader}
    */
   async importProviders(patterns: string | string[], options?: {[key: string]: any}): Promise<IProvider<any>[]> {
-    const onScan = async (file: string) => {
-      try {
-        $log.debug(`Import file:`, file);
-
-        return await import(file);
-      } catch (er) {
-        /* istanbul ignore next */
-        $log.error(er);
-        /* istanbul ignore next */
-        process.exit(-1);
-      }
-    };
-
     const cleanedPatterns = Bootstrap.cleanGlobPatterns(patterns, this.settings.exclude);
-    const promises = globby.sync(cleanedPatterns).map(onScan);
+    const promises = globby.sync(cleanedPatterns).map(async file => {
+      const symbols = await this.importSymbols(file);
 
-    this._imports = this._imports.concat(promises);
+      return symbols.map((symbol: any) => ({provide: symbol, options}));
+    });
 
-    const listExports: any[] = await promises;
+    const list: any[][] = await Promise.all(promises);
 
-    return listExports.reduce((acc: any[], exports: any) => {
-      return acc
-        .concat(
-          Object.keys(exports)
-            .map(key => exports[key])
-            .filter(token => isClass(token) && GlobalProviders.has(token))
-        )
-        .map(symbol => ({provide: symbol, options}));
-    }, []);
+    return list.reduce((acc: IProvider<any>[], value: IProvider<any>[]) => {
+      acc = acc.concat(value);
+
+      return acc;
+    }, []) as IProvider<any>[];
   }
 
   /**
    * Take a configuration and try to resolve all providers from Patterns, Class or IProvider.
    * @param providers
    */
-  async resolveProviders(providers: IResolveProviderOptions[]) {
-    const resolve = async (acc: any[], obj: IResolveProviderOptions) => {
-      if (typeof obj === "string") {
-        const classes = await this.importProviders(obj);
+  async resolveProviders(providers: IResolveProviderOptions[]): Promise<IProvider<any>[]> {
+    const promise: Promise<any> = Promise.all(await providers.reduce(this.whenResolveProvider as any, [])).then(resolvedProviders => {
+      this.addProviders(resolvedProviders);
 
-        return acc.concat(classes);
-      }
+      return resolvedProviders;
+    });
 
-      if (typeof obj === "object") {
-        if ("pattern" in obj) {
-          const classes = await this.importProviders(obj.pattern, obj.options);
+    this.addWaiters(promise);
 
-          return acc.concat(classes);
-        }
-
-        if (isClass(obj)) {
-          return acc.concat({provide: obj, useClass: obj});
-        }
-
-        return acc.concat(obj);
-      }
-
-      return await acc;
-    };
-
-    const resolvedProviders: IProvider<any>[] = await Promise.all(providers.reduce(resolve as any, []));
-
-    this.addProviders(resolvedProviders);
-
-    return resolvedProviders;
+    return promise;
   }
 
   /**
@@ -173,6 +169,14 @@ export class Bootstrap {
     providers.forEach((provider: IProvider<any>) => {
       this.injector.addProvider(provider);
     });
+  }
+
+  protected async wait(): Promise<void> {
+    await Promise.all(this._waiters);
+  }
+
+  protected addWaiters(...promises: Promise<any>[]) {
+    this._waiters = this._waiters.concat(promises);
   }
 
   /**
@@ -191,6 +195,26 @@ export class Bootstrap {
       this.resolveProviders(settings.providers);
     }
   }
+
+  private whenResolveProvider = async (acc: any[], obj: IResolveProviderOptions) => {
+    if (typeof obj === "string") {
+      const providers = await this.importProviders(obj);
+
+      return acc.concat(providers);
+    }
+
+    if (isClass(obj)) {
+      return acc.concat({provide: obj, useClass: obj});
+    }
+
+    if ("pattern" in obj) {
+      const providers = await this.importProviders(obj.pattern, obj.options);
+
+      return acc.concat(providers);
+    }
+
+    return acc.concat(obj);
+  };
 
   /**
    *

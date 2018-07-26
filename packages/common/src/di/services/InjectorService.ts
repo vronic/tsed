@@ -1,8 +1,8 @@
 import {
-  Deprecated,
   Env,
   getClass,
   getClassOrSymbol,
+  isClass,
   Metadata,
   nameOf,
   promiseTimeout,
@@ -15,13 +15,12 @@ import {$log} from "ts-log-debug";
 import {Provider} from "../class/Provider";
 import {InjectionError} from "../errors/InjectionError";
 import {InjectionScopeError} from "../errors/InjectionScopeError";
-import {IInjectableMethod, IProvider, ProviderScope} from "../interfaces";
+import {IInvokeMethodOptions, IProvider, LocalsContainer, ProviderScope, TokenProvider} from "../interfaces";
 import {IInjectableProperties, IInjectablePropertyService, IInjectablePropertyValue} from "../interfaces/IInjectableProperties";
+import {IInvokeMapService, IInvokeOptions, IInvokeSettings} from "../interfaces/IInvokeOptions";
 import {ProviderType} from "../interfaces/ProviderType";
-import {GlobalProviders, ProviderRegistry, registerFactory, registerProvider, registerService} from "../registries/ProviderRegistry";
+import {GlobalProviders, registerProvider} from "../registries/ProviderRegistry";
 import {SettingsService} from "./SettingsService";
-
-let globalInjector: any;
 
 /**
  * This service contain all services collected by `@Service` or services declared manually with `InjectorService.factory()` or `InjectorService.service()`.
@@ -49,7 +48,6 @@ let globalInjector: any;
 export class InjectorService extends Map<RegistryKey, Provider<any>> {
   constructor() {
     super();
-    globalInjector = this;
     this.initInjector();
     this.initSettings();
   }
@@ -104,6 +102,10 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    */
   has(key: RegistryKey): boolean {
     return super.has(getClassOrSymbol(key)) && !!this.get(key);
+  }
+
+  hasProvider(key: RegistryKey) {
+    return super.has(getClassOrSymbol(key));
   }
 
   /**
@@ -163,6 +165,19 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
 
   /**
    *
+   * @param token1
+   * @param token2
+   */
+  createAlias(token1: Type<any>, token2: Type<any>): this {
+    const provider = this.getProvider(token1)!;
+
+    this.set(token2, provider);
+
+    return this;
+  }
+
+  /**
+   *
    * @param {ProviderType} type
    * @returns {[RegistryKey , Provider<any>][]}
    */
@@ -190,38 +205,132 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    *
    * @param target The injectable class to invoke. Class parameters are injected according constructor signature.
    * @param locals  Optional object. If preset then any argument Class are read from this object first, before the `InjectorService` is consulted.
-   * @param designParamTypes Optional object. List of injectable types.
-   * @param requiredScope
+   * @param options Invoke options
    * @returns {T} The class constructed.
    */
-  invoke<T>(target: any, locals: Map<string | Function, any> = new Map(), designParamTypes?: any[], requiredScope: boolean = false): T {
-    const {onInvoke} = GlobalProviders.getRegistrySettings(target);
-    const provider = this.getProvider(target);
-    const parentScope = Store.from(target).get("scope");
-
-    if (!designParamTypes) {
-      designParamTypes = Metadata.getParamTypes(target);
-    }
-
-    if (provider && onInvoke) {
-      onInvoke(provider, locals, designParamTypes);
-    }
-
-    const services = designParamTypes.map(serviceType =>
+  invoke<T>(target: TokenProvider, locals: LocalsContainer = new Map(), options: Partial<IInvokeOptions<T>> = {}): T {
+    const {token, deps, scope, useScope, construct} = this.mapInvokeOptions(target, options);
+    const services = deps.map(dependency =>
       this.mapServices({
-        serviceType,
-        target,
+        token,
+        dependency,
         locals,
-        requiredScope,
-        parentScope
+        useScope,
+        parentScope: scope
       })
     );
 
-    const instance = new target(...services);
+    const instance = construct(services);
 
-    this.bindInjectableProperties(instance);
+    if (isClass(token)) {
+      this.bindInjectableProperties(instance);
+    }
 
     return instance;
+  }
+
+  /**
+   * Invoke a class method and inject service.
+   *
+   * #### IInvokeMethodOptions options
+   *
+   * * **target**: Optional. The class instance.
+   * * **methodName**: `string` Optional. The method name.
+   * * **designParamTypes**: `any[]` Optional. List of injectable types.
+   * * **locals**: `Map<Function, any>` Optional. If preset then any argument Class are read from this object first, before the `InjectorService` is consulted.
+   *
+   * #### Example
+   *
+   * ```typescript
+   * import {InjectorService} from "@tsed/common";
+   *
+   * class MyService {
+   *      constructor(injectorService: InjectorService) {
+   *          injectorService.invokeMethod(this.method, {
+   *              target: this,
+   *              methodName: 'method'
+   *          });
+   *      }
+   *
+   *   method(otherService: OtherService) {}
+   * }
+   * ```
+   *
+   * @returns {any}
+   * @param handler The injectable method to invoke. Method parameters are injected according method signature.
+   * @param locals
+   * @param options Object to configure the invocation.
+   */
+  invokeMethod(handler: any, locals: LocalsContainer = new Map(), options: IInvokeMethodOptions<any>): any {
+    const {target, methodName} = options;
+    const {deps, construct} = this.mapInvokeOptions(handler, {
+      deps: Metadata.getParamTypes(prototypeOf(target), methodName),
+      ...options
+    });
+
+    if (handler.$injected) {
+      return handler.call(target, locals);
+    }
+
+    const services = deps.map((dependency: any) =>
+      this.mapServices({
+        dependency,
+        token: target,
+        locals,
+        useScope: false
+      })
+    );
+
+    return construct(services);
+  }
+
+  /**
+   *
+   * @param token
+   * @param options
+   */
+  private mapInvokeOptions(token: TokenProvider, options: Partial<IInvokeOptions<any>> = {}): IInvokeSettings {
+    const {target, methodName, useScope = false} = options;
+
+    let deps: TokenProvider[] | undefined = options.deps;
+    let scope = options.scope;
+    let construct = (deps: TokenProvider[]) => {};
+
+    if (this.hasProvider(token)) {
+      const provider = this.getProvider(token)!;
+      if (provider.useFactory) {
+        construct = (deps: TokenProvider[]) => provider.useFactory(...deps);
+      } else if (provider.useValue) {
+        construct = () => provider.useValue;
+      } else if (provider.useClass) {
+        construct = (deps: TokenProvider[]) => new provider.useClass(...deps);
+      }
+
+      deps = deps || provider.deps;
+      scope = scope || provider.scope || Store.from(token).get("scope");
+    } else {
+      if (isClass(token)) {
+        construct = (deps: TokenProvider[]) => new token(...deps);
+      }
+    }
+    if (target && methodName) {
+      deps = deps || Metadata.getParamTypes(prototypeOf(target), methodName);
+      construct = (deps: TokenProvider[]) => token(...deps);
+    } else {
+      deps = deps || Metadata.getParamTypes(token);
+    }
+
+    if (!isClass(token) && typeof token === "function") {
+      construct = (deps: TokenProvider[]) => token(...deps);
+    }
+
+    return {
+      token,
+      deps: deps! || [],
+      useScope,
+      scope: scope || ProviderScope.SINGLETON,
+      construct
+    };
   }
 
   /**
@@ -229,43 +338,50 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * @returns {any}
    * @param options
    */
-  private mapServices(options: any) {
-    const {serviceType, target, locals, parentScope, requiredScope} = options;
-    const serviceName = typeof serviceType === "function" ? nameOf(serviceType) : serviceType;
-    const localService = locals.get(serviceName) || locals.get(serviceType);
+  private mapServices(options: IInvokeMapService) {
+    const {token, dependency, locals, parentScope, useScope} = options;
+    const serviceName = typeof dependency === "function" ? nameOf(dependency) : dependency;
+    const localService = locals.get(serviceName) || locals.get(dependency);
 
     if (localService) {
       return localService;
     }
 
-    const provider = this.getProvider(serviceType);
+    if (dependency === Provider) {
+      return this.getProvider(token);
+    }
+
+    const provider = this.getProvider(dependency);
 
     if (!provider) {
-      throw new InjectionError(target, serviceName.toString());
+      throw new InjectionError(token, serviceName.toString());
     }
 
-    const {buildable, injectable} = GlobalProviders.getRegistrySettings(provider.type);
-    const scopeReq = provider.scope === ProviderScope.REQUEST;
+    const {injectable} = GlobalProviders.getRegistrySettings(provider.type);
+    const rebuild = provider.scope === ProviderScope.INSTANCE || provider.scope === ProviderScope.REQUEST;
 
     if (!injectable) {
-      throw new InjectionError(target, serviceName.toString(), "not injectable");
+      throw new InjectionError(token, serviceName.toString(), "not injectable");
     }
 
-    if (!buildable || (provider.instance && !scopeReq)) {
+    if (provider.instance && !rebuild) {
       return provider.instance;
     }
 
-    if (scopeReq && requiredScope && !parentScope) {
-      throw new InjectionScopeError(provider.useClass, target);
+    if (rebuild && useScope && !parentScope) {
+      throw new InjectionScopeError(provider.provide, token);
     }
 
     try {
-      const instance = this.invoke<any>(provider.useClass, locals, undefined, requiredScope);
-      locals.set(provider.provide, instance);
+      const instance = this.invoke<any>(provider.provide, locals, {useScope});
+
+      if (provider.scope !== ProviderScope.INSTANCE) {
+        locals.set(provider.provide, instance);
+      }
 
       return instance;
     } catch (er) {
-      const error = new InjectionError(target, serviceName.toString(), "injection failed");
+      const error = new InjectionError(token, serviceName.toString(), "injection failed");
       (error as any).origin = er;
       throw error;
     }
@@ -311,10 +427,9 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
     const originalMethod = instance[propertyKey];
 
     instance[propertyKey] = (locals: Map<Function, string> | any = new Map<Function, string>()) => {
-      return this.invokeMethod(originalMethod!.bind(instance), {
+      return this.invokeMethod(originalMethod!.bind(instance), locals instanceof Map ? locals : undefined, {
         target,
-        methodName: propertyKey,
-        locals: locals instanceof Map ? locals : undefined
+        methodName: propertyKey
       });
     };
 
@@ -378,62 +493,6 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
   }
 
   /**
-   * Invoke a class method and inject service.
-   *
-   * #### IInjectableMethod options
-   *
-   * * **target**: Optional. The class instance.
-   * * **methodName**: `string` Optional. The method name.
-   * * **designParamTypes**: `any[]` Optional. List of injectable types.
-   * * **locals**: `Map<Function, any>` Optional. If preset then any argument Class are read from this object first, before the `InjectorService` is consulted.
-   *
-   * #### Example
-   *
-   * ```typescript
-   * import {InjectorService} from "@tsed/common";
-   *
-   * class MyService {
-   *      constructor(injectorService: InjectorService) {
-   *          injectorService.invokeMethod(this.method, {
-   *              this,
-   *              methodName: 'method'
-   *          });
-   *      }
-   *
-   *   method(otherService: OtherService) {}
-   * }
-   * ```
-   *
-   * @returns {any}
-   * @param handler The injectable method to invoke. Method parameters are injected according method signature.
-   * @param options Object to configure the invocation.
-   */
-  public invokeMethod(handler: any, options: IInjectableMethod<any>): any {
-    let {designParamTypes} = options;
-    const {locals = new Map<any, any>(), target, methodName} = options;
-
-    if (handler.$injected) {
-      return handler.call(target, locals);
-    }
-
-    if (!designParamTypes) {
-      designParamTypes = Metadata.getParamTypes(prototypeOf(target), methodName);
-    }
-
-    const services = designParamTypes.map((serviceType: any) =>
-      this.mapServices({
-        serviceType,
-        target,
-        locals,
-        requiredScope: false,
-        parentScope: false
-      })
-    );
-
-    return handler(...services);
-  }
-
-  /**
    * Initialize injectorService and load all services/factories.
    */
   async load(): Promise<any> {
@@ -446,35 +505,27 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    *
    * @returns {Map<Type<any>, any>}
    */
-  private build(): Map<Type<any>, any> {
-    const locals: Map<Type<any>, any> = new Map();
+  private build(): LocalsContainer {
+    const locals: LocalsContainer = new Map();
 
     this.forEach(provider => {
       const token = nameOf(provider.provide);
-      const registrySettings = GlobalProviders.getRegistrySettings(provider.type);
       const useClass = nameOf(provider.useClass);
+      const defaultScope: ProviderScope = this.settings.scopeOf(provider.type);
 
-      if (registrySettings.buildable) {
-        const defaultScope: ProviderScope = this.settings.scopeOf(provider.type);
-
-        if (defaultScope && !provider.scope) {
-          provider.scope = defaultScope;
-        }
-
-        if (!locals.has(provider.provide)) {
-          provider.instance = this.invoke(provider.useClass, locals);
-        } else if (provider.scope === ProviderScope.SINGLETON) {
-          provider.instance = locals.get(provider.provide);
-        }
-
-        $log.debug(nameOf(provider.provide), "built", token === useClass ? "" : `from class ${useClass}`);
-      } else {
-        provider.scope = ProviderScope.SINGLETON;
-        $log.debug(nameOf(provider.provide), "loaded");
+      if (defaultScope && !provider.scope) {
+        provider.scope = defaultScope;
       }
 
-      if (provider.instance) {
-        locals.set(provider.provide, provider.instance);
+      if (!provider.instance && provider.scope === ProviderScope.SINGLETON) {
+        if (!locals.has(provider.provide)) {
+          provider.instance = this.invoke(provider.provide, locals);
+          $log.debug(nameOf(provider.provide), "built", token === useClass ? "" : `from class ${useClass}`);
+        }
+
+        if (provider.instance) {
+          locals.set(provider.provide, provider.instance);
+        }
       }
     });
 
@@ -560,32 +611,32 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * @param target The injectable class to invoke. Class parameters are injected according constructor signature.
    * @param locals  Optional object. If preset then any argument Class are read from this object first, before the `InjectorService` is consulted.
    * @param designParamTypes Optional object. List of injectable types.
-   * @param requiredScope
+   * @param usScope
    * @returns {T} The class constructed.
    */
-  @Deprecated("removed feature")
-  /* istanbul ignore next */
-  static invoke<T>(
-    target: any,
-    locals: Map<string | Function, any> = new Map<Function, any>(),
-    designParamTypes?: any[],
-    requiredScope: boolean = false
-  ): T {
-    return globalInjector.invoke(target, locals, designParamTypes, requiredScope);
-  }
+  // @Deprecated("removed feature")
+  // /* istanbul ignore next */
+  // static invoke<T>(
+  //   target: any,
+  //   locals: Map<string | Function, any> = new Map<Function, any>(),
+  //   designParamTypes?: any[],
+  //   usScope: boolean = false
+  // ): T {
+  //   return globalInjector.invoke(target, locals, designParamTypes, usScope);
+  // }
 
   /**
    * Construct the service with his dependencies.
    * @param target The service to be built.
    * @deprecated
    */
-  @Deprecated("removed feature")
-  /* istanbul ignore next */
-  static construct<T>(target: Type<any> | symbol): T {
-    const provider: Provider<any> = ProviderRegistry.get(target)!;
-
-    return this.invoke<any>(provider.useClass);
-  }
+  // @Deprecated("removed feature")
+  // /* istanbul ignore next */
+  // static construct<T>(target: Type<any> | symbol): T {
+  //   const provider: Provider<any> = ProviderRegistry.get(target)!;
+  //
+  //   return this.invoke<any>(provider.useClass);
+  // }
 
   /**
    * Emit an event to all service. See service [lifecycle hooks](/docs/services.md#lifecycle-hooks).
@@ -593,11 +644,11 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * @param args List of the parameters to give to each services.
    * @returns {Promise<any[]>} A list of promises.
    */
-  @Deprecated("removed feature")
-  /* istanbul ignore next */
-  static async emit(eventName: string, ...args: any[]): Promise<any> {
-    return globalInjector.emit(eventName, args);
-  }
+  // @Deprecated("removed feature")
+  // /* istanbul ignore next */
+  // static async emit(eventName: string, ...args: any[]): Promise<any> {
+  //   return globalInjector.emit(eventName, args);
+  // }
 
   /**
    * Get a service or factory already constructed from his symbol or class.
@@ -618,16 +669,16 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * @param target The class or symbol registered in InjectorService.
    * @returns {boolean}
    */
-  @Deprecated("removed feature")
-  /* istanbul ignore next */
-  static get<T>(target: RegistryKey): T {
-    return globalInjector.get(target)!.instance;
-  }
+  // @Deprecated("removed feature")
+  // /* istanbul ignore next */
+  // static get<T>(target: RegistryKey): T {
+  //   return globalInjector.get(target)!.instance;
+  // }
 
   /**
    * Invoke a class method and inject service.
    *
-   * #### IInjectableMethod options
+   * #### IInvokeMethodOptions options
    *
    * * **target**: Optional. The class instance.
    * * **methodName**: `string` Optional. The method name.
@@ -655,11 +706,11 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * @param handler The injectable method to invoke. Method parameters are injected according method signature.
    * @param options Object to configure the invocation.
    */
-  @Deprecated("removed feature")
-  /* istanbul ignore next */
-  static invokeMethod(handler: any, options: IInjectableMethod<any> | any[]) {
-    return globalInjector.invokeMethod(handler, options);
-  }
+  // @Deprecated("removed feature")
+  // /* istanbul ignore next */
+  // static invokeMethod(handler: any, options: IInvokeMethodOptions<any> | any[]) {
+  //   return globalInjector.invokeMethod(handler, options);
+  // }
 
   /**
    * Set a new provider from providerSetting.
@@ -667,22 +718,22 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * @param instance Instance
    * @deprecated Use registerProvider or registerService or registerFactory instead of
    */
-  @Deprecated("Use registerService(), registerFactory() or registerProvider() util instead of")
-  /* istanbul ignore next */
-  static set(provider: IProvider<any> | any, instance?: any) {
-    if (!provider.provide) {
-      provider = {
-        provide: provider,
-        type: "factory",
-        useClass: provider,
-        instance: instance || provider
-      };
-    }
-
-    registerProvider(provider);
-
-    return InjectorService;
-  }
+  // @Deprecated("Use registerService(), registerFactory() or registerProvider() util instead of")
+  // /* istanbul ignore next */
+  // static set(provider: IProvider<any> | any, instance?: any) {
+  //   if (!provider.provide) {
+  //     provider = {
+  //       provide: provider,
+  //       type: "factory",
+  //       useClass: provider,
+  //       instance: instance || provider
+  //     };
+  //   }
+  //
+  //   registerProvider(provider);
+  //
+  //   return InjectorService;
+  // }
 
   /**
    * Check if the service of factory exists in `InjectorService`.
@@ -703,24 +754,24 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * @param target The service class
    * @returns {boolean}
    */
-  @Deprecated("static InjectorService.has(). Removed feature.")
-  /* istanbul ignore next */
-  static has(target: any): boolean {
-    return globalInjector.has(target);
-  }
+  // @Deprecated("static InjectorService.has(). Removed feature.")
+  // /* istanbul ignore next */
+  // static has(target: any): boolean {
+  //   return globalInjector.has(target);
+  // }
 
   /**
    * Initialize injectorService and load all services/factories.
    */
-  @Deprecated("removed feature")
-  /* istanbul ignore next */
-  static async load() {
-    if (!globalInjector) {
-      globalInjector = new InjectorService();
-    }
-
-    return globalInjector.load();
-  }
+  // @Deprecated("removed feature")
+  // /* istanbul ignore next */
+  // static async load() {
+  //   if (!globalInjector) {
+  //     globalInjector = new InjectorService();
+  //   }
+  //
+  //   return globalInjector.load();
+  // }
 
   /**
    * Add a new service in the registry. This service will be constructed when `InjectorService`will loaded.
@@ -748,11 +799,11 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * @param target The class to add in registry.
    * @deprecated Use registerService or registerFactory instead of.
    */
-  @Deprecated("Use registerService() util instead of")
+  // @Deprecated("Use registerService() util instead of")
   /* istanbul ignore next */
-  static service(target: any) {
-    return registerService(target);
-  }
+  // static service(target: any) {
+  //   return registerService(target);
+  // }
 
   /**
    * Add a new factory in `InjectorService` registry.
@@ -809,14 +860,18 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * ```
    * @deprecated Use registerFactory instead of
    */
-  @Deprecated("Use registerFactory() util instead of")
+  // @Deprecated("Use registerFactory() util instead of")
   /* istanbul ignore next */
-  static factory(target: any, instance: any) {
-    return registerFactory(target, instance);
-  }
+  // static factory(target: any, instance: any) {
+  //   return registerFactory(target, instance);
+  // }
 }
 
 /**
  * Create the first service InjectorService
  */
-registerFactory(InjectorService);
+registerProvider({
+  provide: InjectorService,
+  scope: ProviderScope.SINGLETON,
+  global: true
+});

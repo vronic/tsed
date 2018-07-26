@@ -1,5 +1,4 @@
-import {SettingsService} from "@tsed/common";
-import {Deprecated, isClass} from "@tsed/core";
+import {isClass} from "@tsed/core";
 import * as Express from "express";
 import * as Http from "http";
 import * as Https from "https";
@@ -9,14 +8,14 @@ import {ServerSettingsService} from "../../config/services/ServerSettingsService
 import {Bootstrap} from "../../di/class/Bootstrap";
 import {IProvider} from "../../di/interfaces";
 import {IResolveProviderOptions} from "../../di/interfaces/IBootstrapSettings";
+import {SettingsService} from "../../di/services/SettingsService";
 
 import {GlobalErrorHandlerMiddleware} from "../../mvc";
-import {HandlerBuilder} from "../../mvc/class/HandlerBuilder";
 import {LogIncomingRequestMiddleware} from "../../mvc/components/LogIncomingRequestMiddleware";
 import {ExpressApplication} from "../../mvc/decorators/class/expressApplication";
 import {HttpServer} from "../decorators/httpServer";
 import {HttpsServer} from "../decorators/httpsServer";
-import {IHTTPSServerOptions, IServerLifecycle} from "../interfaces";
+import {IServerLifecycle} from "../interfaces";
 
 $log.name = "TSED";
 $log.level = "info";
@@ -68,7 +67,7 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
   /**
    *
    */
-  private _components: IProvider<any>[];
+  private _components: IProvider<any>[] = [];
 
   /**
    *
@@ -76,7 +75,9 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
   constructor() {
     super();
 
-    this.createExpressApplication();
+    this.injector.createAlias(SettingsService, ServerSettingsService);
+    // this.createServerSettingsService();
+    // this.createExpressApplication();
     this.readSettingsMetadata();
   }
 
@@ -112,44 +113,44 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
    *
    * @returns {Express}
    */
-  public createExpressApplication(): ServerLoader {
-    const expressApp = Express();
-    const originalUse = expressApp.use;
-    const injector = this.injector;
-
-    expressApp.use = function(...args: any[]) {
-      args = args.map(arg => {
-        if (injector.has(arg)) {
-          arg = HandlerBuilder.from(arg).build(injector);
-        }
-
-        return arg;
-      });
-
-      return originalUse.call(this, ...args);
-    };
-
-    this.injector.forkProvider(ExpressApplication, expressApp);
-
-    return this;
-  }
+  // protected createExpressApplication(): ServerLoader {
+  //   const expressApp = Express();
+  //   const originalUse = expressApp.use;
+  //   const injector = this.injector;
+  //
+  //   expressApp.use = function(...args: any[]) {
+  //     args = args.map(arg => {
+  //       if (injector.has(arg)) {
+  //         arg = HandlerBuilder.from(arg).build(injector);
+  //       }
+  //
+  //       return arg;
+  //     });
+  //
+  //     return originalUse.call(this, ...args);
+  //   };
+  //
+  //   this.injector.forkProvider(ExpressApplication, expressApp);
+  //
+  //   return this;
+  // }
 
   /**
    * Create a new HTTP server with the provided `port`.
    * @returns {ServerLoader}
    */
-  public createHttpServer(port: string | number): ServerLoader {
-    const httpServer: any = Http.createServer(this.expressApp);
-    // TODO to be removed
-    /* istanbul ignore next */
-    httpServer.get = () => httpServer;
-
-    this.injector.forkProvider(HttpServer, httpServer);
-
-    this.settings.httpPort = port;
-
-    return this;
-  }
+  // public createHttpServer(port: string | number): ServerLoader {
+  //   // const httpServer: any = Http.createServer(this.expressApp);
+  //   // // TODO to be removed
+  //   // /* istanbul ignore next */
+  //   // httpServer.get = () => httpServer;
+  //   //
+  //   // this.injector.forkProvider(HttpServer, httpServer);
+  //
+  //   this.settings.httpPort = port;
+  //
+  //   return this;
+  // }
 
   /**
    * Create a new HTTPs server.
@@ -167,18 +168,18 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
    * @param options Options to create new HTTPS server.
    * @returns {ServerLoader}
    */
-  public createHttpsServer(options: IHTTPSServerOptions): ServerLoader {
-    const httpsServer: any = Https.createServer(options, this.expressApp);
-    // TODO to be removed
-    /* istanbul ignore next */
-    httpsServer.get = () => httpsServer;
-
-    this.injector.forkProvider(HttpsServer, httpsServer);
-
-    this.settings.httpsPort = options.port;
-
-    return this;
-  }
+  // public createHttpsServer(options: IHTTPSServerOptions): ServerLoader {
+  //   // const httpsServer: any = Https.createServer(options, this.expressApp);
+  //   // // TODO to be removed
+  //   // /* istanbul ignore next */
+  //   // httpsServer.get = () => httpsServer;
+  //   //
+  //   // this.injector.forkProvider(HttpsServer, httpsServer);
+  //
+  //   this.settings.httpsPort = options.port;
+  //
+  //   return this;
+  // }
 
   /**
    * This method let you to add a express middleware or a Ts.ED middleware like GlobalAcceptMimes.
@@ -273,9 +274,12 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
    * @returns {ServerLoader}
    */
   public scan(patterns: string | string[], endpoint?: string): ServerLoader {
-    this.importProviders(patterns, {endpoint}).then((providers: IProvider<any>[]) => {
-      this._components = this._components.concat(providers);
-    });
+    this.addWaiters(
+      this.importProviders(patterns, {endpoint}).then((providers: IProvider<any>[]) => {
+        this.addProviders(providers);
+        this._components = this._components.concat(providers);
+      })
+    );
 
     return this;
   }
@@ -302,16 +306,18 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
    * @returns {ServerLoader}
    */
   public addControllers(endpoint: string, controllers: IResolveProviderOptions[]): this {
-    this.resolveProviders(controllers).then((providers: IProvider<any>[]) => {
-      providers = providers.map(provider => {
-        return {
-          ...provider,
-          options: {endpoint}
-        };
-      });
+    this.addWaiters(
+      this.resolveProviders(controllers).then((providers: IProvider<any>[]) => {
+        providers = providers.map(provider => {
+          return {
+            ...provider,
+            options: {endpoint}
+          };
+        });
 
-      this._components = this._components.concat(providers);
-    });
+        this._components = this._components.concat(providers);
+      })
+    );
 
     return this;
   }
@@ -323,16 +329,18 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
    * @deprecated
    */
   public addComponents(classes: any | any[], options: any = {}): this {
-    this.resolveProviders(classes).then((providers: IProvider<any>[]) => {
-      providers = providers.map(provider => {
-        return {
-          ...provider,
-          options
-        };
-      });
+    this.addWaiters(
+      this.resolveProviders(classes).then((providers: IProvider<any>[]) => {
+        providers = providers.map(provider => {
+          return {
+            ...provider,
+            options
+          };
+        });
 
-      this._components = this._components.concat(providers);
-    });
+        this._components = this._components.concat(providers);
+      })
+    );
 
     return this;
   }
@@ -355,9 +363,14 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
       return true;
     });
 
-    this.importProviders(patterns, {endpoint}).then((providers: IProvider<any>[]) => {
-      this._components = this._components.concat(providers);
-    });
+    if (patterns.length) {
+      this.addWaiters(
+        this.importProviders(patterns, {endpoint}).then((providers: IProvider<any>[]) => {
+          this.addProviders(providers);
+          this._components = this._components.concat(providers);
+        })
+      );
+    }
 
     return this;
   }
@@ -440,10 +453,11 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
   /**
    *
    */
-  @Deprecated("Removed feature. Use ServerLoader.settings")
-  protected getSettingsService(): SettingsService {
-    return this.settings;
-  }
+  // @Deprecated("Removed feature. Use ServerLoader.settings")
+  // protected getSettingsService(): SettingsService {
+  //   return this.settings;
+  // }
+
   /**
    * Create a new server from settings parameters.
    * @param http
@@ -535,25 +549,25 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
           break;
 
         case "componentsScan":
-          $log.warn("The componentsScan options is deprecated. Use providers instead of");
-          this.resolveProviders(this.settings.componentsScan);
+          $log.warn("The componentsScan options is deprecated. Use providers instead of.", this.settings.componentsScan);
+          this.settings.componentsScan.forEach(componentDir => this.scan(componentDir));
           break;
 
-        case "httpPort":
-          /* istanbul ignore else */
-          if (value !== false && this.httpServer === undefined) {
-            this.createHttpServer(value);
-          }
-
-          break;
-
-        case "httpsPort":
-          /* istanbul ignore else */
-          if (value !== false && this.httpsServer === undefined) {
-            this.createHttpsServer(Object.assign(map.get("httpsOptions") || {}, {port: value}));
-          }
-
-          break;
+        // case "httpPort":
+        //   /* istanbul ignore else */
+        //   if (value !== false && this.httpServer === undefined) {
+        //     this.createHttpServer(value);
+        //   }
+        //
+        //   break;
+        //
+        // case "httpsPort":
+        //   /* istanbul ignore else */
+        //   if (value !== false && this.httpsServer === undefined) {
+        //     this.createHttpsServer(Object.assign(map.get("httpsOptions") || {}, {port: value}));
+        //   }
+        //
+        //   break;
       }
     };
 

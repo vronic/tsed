@@ -1,3 +1,4 @@
+import {LocalsContainer, TokenProvider} from "@tsed/common";
 import {Done} from "./done";
 import {loadInjector} from "./loadInjector";
 
@@ -10,34 +11,29 @@ import {loadInjector} from "./loadInjector";
  * * an array of Service dependency injection tokens,
  * * a test function whose parameters correspond exactly to each item in the injection token array.
  *
- * @param targets
+ * @param deps
  * @param func
+ * @param locals
  * @returns {any}
  */
-export function inject(targets: any[], func: Function) {
+export function inject(deps: TokenProvider[], func: Function, locals: LocalsContainer = new Map()) {
   return function before(done: Function) {
-    const injector = this.$$injector || loadInjector();
+    (async () => {
+      let injector = this.$$injector;
 
-    let isDoneInjected = false;
-    const args = targets.map(target => {
-      if (target === Done) {
-        isDoneInjected = true;
-
-        return done;
+      if (!this.$$injector) {
+        injector = await loadInjector();
       }
 
-      /* istanbul ignore next */
-      if (!injector.has(target)) {
-        return injector.invoke(target);
+      locals.set(Done, done);
+
+      await injector.invoke(func, locals, {
+        deps
+      });
+
+      if (deps.indexOf(Done) === -1) {
+        done();
       }
-
-      return injector.get(target);
-    });
-
-    const result = func.apply(null, args);
-
-    if (!isDoneInjected) done();
-
-    return result;
+    })();
   };
 }

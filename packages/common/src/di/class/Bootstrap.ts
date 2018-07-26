@@ -2,10 +2,11 @@ import {isClass, Type} from "@tsed/core";
 import * as globby from "globby";
 import * as Path from "path";
 import {$log} from "ts-log-debug";
-import {IProvider, SettingsService} from "../../..";
 import {IBootstrapSettings, IResolveProviderOptions} from "../interfaces/IBootstrapSettings";
+import {IProvider} from "../interfaces/IProvider";
 import {GlobalProviders} from "../registries/ProviderRegistry";
 import {InjectorService} from "../services/InjectorService";
+import {SettingsService} from "../services/SettingsService";
 
 /**
  * Bootstrap a
@@ -61,16 +62,27 @@ export class Bootstrap {
       return;
     }
 
-    // TODO OLD IMPLEMENTATION
-    GlobalProviders.toArray().forEach(({token, provider}) => {
-      if (!this.injector.has(token)) {
-        this.injector.addProvider(provider);
-      }
-    });
+    this.loadFromGlobalRegistry();
+    console.log("LoadInjector=================");
+    this.injector.forEach(p => console.log(p.className));
 
     await this.injector.load();
+    console.log("LoadInjector=================END");
 
     this.loaded = true;
+  }
+
+  loadFromGlobalRegistry() {
+    // TODO OLD IMPLEMENTATION
+    GlobalProviders.toArray().forEach(({token, provider}) => {
+      if (provider.alias && provider.provide !== token) {
+        this.injector.createAlias(provider.provide, token);
+      } else {
+        if (!this.injector.has(token)) {
+          this.injector.addProvider(provider);
+        }
+      }
+    });
   }
 
   async resolveModules(modules: any[]) {}

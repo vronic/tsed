@@ -1,6 +1,7 @@
 import {Deprecated, Env, Metadata} from "@tsed/core";
 import * as Https from "https";
 import {$log} from "ts-log-debug";
+import {Alias} from "../../di/decorators/alias";
 import {OverrideService} from "../../di/decorators/overrideService";
 import {ProviderScope} from "../../di/interfaces/ProviderScope";
 import {SettingsService} from "../../di/services/SettingsService";
@@ -22,6 +23,7 @@ export let GlobalServerSettings: ServerSettingsService;
  */
 
 @OverrideService(SettingsService)
+@Alias(SettingsService)
 export class ServerSettingsService extends SettingsService implements IServerSettings {
   constructor() {
     super();
@@ -384,8 +386,3 @@ export class ServerSettingsService extends SettingsService implements IServerSet
     this.set("httpsPort", `${settings.address}:${settings.port}`);
   }
 }
-
-/**
- * @deprecated
- */
-export class ServerSettingsProvider extends ServerSettingsService {}

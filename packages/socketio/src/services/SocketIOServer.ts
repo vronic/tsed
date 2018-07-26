@@ -15,6 +15,7 @@ export const SocketIOServer = Symbol("SocketIOServer");
 registerProvider({
   provide: SocketIOServer,
   scope: ProviderScope.SINGLETON,
+  deps: [],
   useFactory() {
     return SocketIO();
   }

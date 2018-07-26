@@ -8,7 +8,6 @@ import {ServerSettingsService} from "../../config/services/ServerSettingsService
 import {Bootstrap} from "../../di/class/Bootstrap";
 import {IProvider} from "../../di/interfaces";
 import {IResolveProviderOptions} from "../../di/interfaces/IBootstrapSettings";
-import {SettingsService} from "../../di/services/SettingsService";
 
 import {GlobalErrorHandlerMiddleware} from "../../mvc";
 import {LogIncomingRequestMiddleware} from "../../mvc/components/LogIncomingRequestMiddleware";
@@ -75,7 +74,6 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
   constructor() {
     super();
 
-    this.injector.createAlias(SettingsService, ServerSettingsService);
     this.readSettingsMetadata();
   }
 
@@ -375,14 +373,6 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
 
     return elseFn();
   };
-
-  /**
-   *
-   */
-  // @Deprecated("Removed feature. Use ServerLoader.settings")
-  // protected getSettingsService(): SettingsService {
-  //   return this.settings;
-  // }
 
   /**
    * Create a new server from settings parameters.

@@ -3,6 +3,7 @@ export * from "./class/ProviderStorable";
 export * from "./class/Bootstrap";
 export * from "./interfaces";
 export * from "./decorators/service";
+export * from "./decorators/alias";
 export * from "./decorators/overrideProvider";
 export * from "./decorators/overrideService";
 export * from "./decorators/inject";

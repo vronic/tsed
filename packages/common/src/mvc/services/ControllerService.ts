@@ -1,10 +1,13 @@
+import {ProviderScope} from "@tsed/common";
 import {ProxyMap, Type} from "@tsed/core";
 import * as Express from "express";
 import {$log} from "ts-log-debug";
 import {ServerSettingsService} from "../../config/services/ServerSettingsService";
-import {Service} from "../../di/decorators/service";
+import {ConverterService} from "../../converters/services/ConverterService";
+import {Injectable} from "../../di/decorators/injectable";
 import {ProviderType} from "../../di/interfaces/ProviderType";
 import {InjectorService} from "../../di/services/InjectorService";
+import {ValidationService} from "../../filters/services/ValidationService";
 import {IComponentScanned} from "../../server/interfaces";
 import {ControllerBuilder} from "../class/ControllerBuilder";
 import {ControllerProvider} from "../class/ControllerProvider";
@@ -14,7 +17,10 @@ import {RouteService} from "./RouteService";
 /**
  * @private
  */
-@Service()
+@Injectable({
+  scope: ProviderScope.SINGLETON,
+  global: true
+})
 export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvider> {
   /**
    *
@@ -22,15 +28,19 @@ export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvi
    * @param injectorService
    * @param settings
    * @param routeService
+   * @param converterService
+   * @param validationService
    */
   constructor(
     private injectorService: InjectorService,
     @ExpressApplication private expressApplication: Express.Application,
     private settings: ServerSettingsService,
-    private routeService: RouteService
+    private routeService: RouteService,
+    private converterService: ConverterService,
+    private validationService: ValidationService
   ) {
     super(injectorService as any, {filter: {type: ProviderType.CONTROLLER}});
-
+    console.log("===> ControllerService");
     this.buildRouters();
   }
 
@@ -48,12 +58,17 @@ export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvi
    */
   private buildRouters() {
     const defaultRoutersOptions = this.settings.routers;
+    console.log("Build Router: ");
 
     this.forEach((provider: ControllerProvider) => {
+      console.log("Controller ==>", provider.className);
+
       if (!provider.router && !provider.hasParent()) {
         new ControllerBuilder(provider, defaultRoutersOptions).build(this.injectorService);
       }
     });
+
+    console.log("Build Router: end");
   }
 
   /**

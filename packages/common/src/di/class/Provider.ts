@@ -32,6 +32,10 @@ export class Provider<T> implements IProvider<T> {
    *
    */
   public useValue: any;
+  /**
+   *
+   */
+  public alias: boolean;
 
   @NotEnumerable()
   private _store: Store;
@@ -58,7 +62,11 @@ export class Provider<T> implements IProvider<T> {
    * @param value
    */
   set provide(value: any) {
-    this._provide = getClass(value);
+    if (isClass(value)) {
+      this._provide = getClass(value);
+    } else {
+      this._provide = value;
+    }
   }
 
   /**
@@ -120,12 +128,17 @@ export class Provider<T> implements IProvider<T> {
     const provider = new Provider(this._provide);
     provider.type = this.type;
     provider.useClass = this._useClass;
+    provider.alias = this.alias;
     provider._instance = this._instance;
     provider.useFactory = this.useFactory;
+    provider.useValue = this.useValue;
     provider.deps = this.deps;
     provider._options = this._options;
     provider._scope = this._scope;
+    provider.global = this.global;
 
     return provider;
   }
 }
+
+export class ParentProvider<T> extends Provider<T> {}

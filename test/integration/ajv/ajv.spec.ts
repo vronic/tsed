@@ -1,4 +1,5 @@
 import {AjvService} from "../../../packages/ajv/src/services/AjvService";
+import {ValidationService} from "../../../packages/common/src/filters";
 import {Format, JsonSchemesService} from "../../../packages/common/src/jsonschema";
 import {Required} from "../../../packages/common/src/mvc/decorators";
 import {ParseExpressionError} from "../../../packages/common/src/mvc/errors/ParseExpressionError";
@@ -27,7 +28,7 @@ const runValidation = (obj: any, targetType: any, collectionType?: any): Chai.As
 describe("AJV", () => {
   let jsonSchemesService: JsonSchemesService;
   before(
-    inject([AjvService, JsonSchemesService], (_ajvService_: AjvService, _jsonSchemesService_: JsonSchemesService) => {
+    inject([ValidationService, JsonSchemesService], (_ajvService_: AjvService, _jsonSchemesService_: JsonSchemesService) => {
       ajvService = _ajvService_;
       jsonSchemesService = _jsonSchemesService_;
     })

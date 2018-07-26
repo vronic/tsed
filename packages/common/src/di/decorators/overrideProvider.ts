@@ -1,5 +1,6 @@
 import {Type} from "@tsed/core";
 import {ProviderRegistry} from "../registries/ProviderRegistry";
+import {Alias} from "./alias";
 
 /**
  * Override a provider which is already registered in ProviderRegistry.
@@ -10,5 +11,6 @@ import {ProviderRegistry} from "../registries/ProviderRegistry";
 export function OverrideProvider(originalProvider: Type<any>): Function {
   return (target: Type<any>): void => {
     ProviderRegistry.get(originalProvider)!.useClass = target;
+    Alias(originalProvider)(target);
   };
 }

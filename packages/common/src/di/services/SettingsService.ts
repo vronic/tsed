@@ -1,8 +1,12 @@
 import {Env, getValue, setValue} from "@tsed/core";
+import {Injectable} from "../decorators/injectable";
 import {ProviderScope, ProviderType} from "../interfaces";
 import {IBootstrapSettings} from "../interfaces/IBootstrapSettings";
-import {registerProvider} from "../registries/ProviderRegistry";
 
+@Injectable({
+  scope: ProviderScope.SINGLETON,
+  global: true
+})
 export class SettingsService {
   [key: string]: any;
 
@@ -155,12 +159,3 @@ export class SettingsService {
     this._map.forEach(callbackfn, thisArg);
   }
 }
-
-/**
- * Create the first service InjectorService
- */
-registerProvider({
-  provide: SettingsService,
-  scope: ProviderScope.SINGLETON,
-  global: true
-});

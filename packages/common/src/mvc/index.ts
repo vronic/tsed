@@ -30,7 +30,6 @@ export * from "./components/SendResponseMiddleware";
 
 // services
 export * from "./services/ControllerService";
-export * from "./services/MiddlewareService";
 export * from "./services/ExpressRouter";
 export * from "./services/RouteService";
 

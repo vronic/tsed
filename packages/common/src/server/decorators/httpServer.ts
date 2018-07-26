@@ -1,8 +1,7 @@
-import {ExpressApplication, ProviderScope, ServerSettingsService, SettingsService} from "@tsed/common";
 import {Type} from "@tsed/core";
 import * as Http from "http";
-import {Inject} from "../../di/decorators/inject";
-import {registerProvider} from "../../di/registries/ProviderRegistry";
+import {ProviderScope, SettingsService, Inject, registerProvider} from "../../di";
+import {ExpressApplication} from "../../mvc/decorators/class/expressApplication";
 
 export interface IHttpFactory {
   (target: Type<any>, targetKey: string, descriptor: TypedPropertyDescriptor<Function> | number): any;
@@ -47,7 +46,7 @@ registerProvider({
   scope: ProviderScope.SINGLETON,
   global: true,
   deps: [SettingsService, ExpressApplication],
-  useFactory(settings: ServerSettingsService, expressApp: ExpressApplication) {
+  useFactory(settings: SettingsService, expressApp: ExpressApplication) {
     return Http.createServer(expressApp);
   }
 });

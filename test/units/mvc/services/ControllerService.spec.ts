@@ -28,7 +28,9 @@ describe("ControllerService", () => {
         this.injector,
         {express: "express"} as any,
         {routers: {global: "global"}} as any,
-        {routeService: "routeService"} as any
+        {routeService: "routeService"} as any,
+        {} as any,
+        {} as any
       );
     });
 
@@ -62,7 +64,9 @@ describe("ControllerService", () => {
         this.injector,
         {express: "express"} as any,
         {routers: {global: "global"}} as any,
-        {routeService: "routeService"} as any
+        {routeService: "routeService"} as any,
+        {} as any,
+        {} as any
       );
 
       this.service.mapComponents([
@@ -109,7 +113,9 @@ describe("ControllerService", () => {
         this.injector,
         this.expressApp as any,
         {routers: {global: "global"}} as any,
-        this.routeService as any
+        this.routeService as any,
+        {} as any,
+        {} as any
       );
 
       this.service.mountRouter("/", this.provider);

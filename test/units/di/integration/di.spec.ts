@@ -1,10 +1,10 @@
-import {InjectorService, ProviderScope} from "@tsed/common";
-import {bootstrap, inject} from "@tsed/testing";
-import {expect} from "../tools";
-import {ProductsCtrl} from "./app/controllers/products/ProductsCtrl";
-import {InnerService} from "./app/services/InnerService";
-import {OuterService} from "./app/services/OuterService";
-import {FakeServer} from "./FakeServer";
+import {InjectorService, ProviderScope} from "../../../../packages/common/src/di/index";
+import {bootstrap, inject} from "../../../../packages/testing/src/index";
+import {ProductsCtrl} from "../../../integration/app/controllers/products/ProductsCtrl";
+import {InnerService} from "../../../integration/app/services/InnerService";
+import {OuterService} from "../../../integration/app/services/OuterService";
+import {FakeServer} from "../../../integration/FakeServer";
+import {expect} from "../../../tools";
 
 describe("DI", () => {
   before(bootstrap(FakeServer));

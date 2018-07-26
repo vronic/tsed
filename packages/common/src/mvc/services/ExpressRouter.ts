@@ -1,7 +1,8 @@
-import {Provider, ProviderScope, registerProvider} from "@tsed/common";
 import {Type} from "@tsed/core";
 import * as Express from "express";
+import {ParentProvider, ProviderScope, registerProvider} from "../../di";
 import {Inject} from "../../di/decorators/inject";
+import {ControllerService} from "./ControllerService";
 
 /**
  *
@@ -36,9 +37,9 @@ export function ExpressRouter(target: Type<any>, targetKey: string, descriptor: 
 
 registerProvider({
   provide: ExpressRouter,
-  deps: [Provider],
+  deps: [ControllerService, ParentProvider],
   scope: ProviderScope.INSTANCE,
-  useFactory: (provider: Provider<any>) => {
+  useFactory: (controllerService: ControllerService, provider: ParentProvider<any>) => {
     return provider.router;
   }
 });

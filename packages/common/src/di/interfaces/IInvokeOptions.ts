@@ -7,6 +7,7 @@ export interface IInvokeOptions<T> {
   target?: Type<T>;
   methodName?: string;
   deps: any[];
+  parent?: TokenProvider;
   scope: ProviderScope;
   useScope: boolean;
 }
@@ -15,6 +16,7 @@ export interface IInvokeSettings {
   construct(deps: TokenProvider[]): any;
 
   token: TokenProvider;
+  parent?: TokenProvider;
   scope: ProviderScope;
   useScope: boolean;
   deps: any[];
@@ -26,4 +28,5 @@ export interface IInvokeMapService {
   locals: LocalsContainer;
   useScope: boolean;
   parentScope?: ProviderScope;
+  parent?: TokenProvider;
 }

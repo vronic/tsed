@@ -1,6 +1,6 @@
-import {InjectorService, ProviderScope} from "@tsed/common";
 import {Type} from "@tsed/core";
 import * as Express from "express";
+import {InjectorService, ProviderScope} from "../../../di";
 import {Inject} from "../../../di/decorators/inject";
 import {registerProvider} from "../../../di/registries/ProviderRegistry";
 import {HandlerBuilder} from "../../class/HandlerBuilder";

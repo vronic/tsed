@@ -35,4 +35,4 @@ export const ControllerRegistry: TypedProvidersRegistry = GlobalProviders.create
  *
  * @param provider Provider configuration.
  */
-export const registerController = GlobalProviders.createRegisterFn(ProviderType.FILTER);
+export const registerController = GlobalProviders.createRegisterFn(ProviderType.CONTROLLER);

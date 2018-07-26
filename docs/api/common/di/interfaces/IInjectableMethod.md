@@ -2,7 +2,7 @@
 sidebar: auto
 meta:
  - name: keywords
-   description: api typescript node.js documentation IInjectableMethod decorator
+   description: api typescript node.js documentation IInvokeMethodOptions decorator
 ---
 # IInjectableMethod <Badge text="Decorator" type="decorator"/>
 <!-- Summary -->

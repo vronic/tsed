@@ -1,4 +1,4 @@
-import {getClass, nameOf, NotEnumerable, Store, Type} from "@tsed/core";
+import {getClass, isClass, nameOf, NotEnumerable, Store, Type} from "@tsed/core";
 import {ProviderScope} from "../interfaces";
 import {IProvider} from "../interfaces/IProvider";
 import {ProviderType} from "../interfaces/ProviderType";
@@ -11,7 +11,27 @@ export class Provider<T> implements IProvider<T> {
   protected _instance: T;
 
   @NotEnumerable()
-  protected _type: ProviderType | any = ProviderType.PROVIDER;
+  protected _scope: ProviderScope;
+  /**
+   *
+   */
+  public type: ProviderType | any = ProviderType.PROVIDER;
+  /**
+   *
+   */
+  public instance: T;
+  /**
+   *
+   */
+  public deps: any[];
+  /**
+   *
+   */
+  public useFactory: Function;
+  /**
+   *
+   */
+  public useValue: any;
 
   @NotEnumerable()
   private _store: Store;
@@ -19,9 +39,10 @@ export class Provider<T> implements IProvider<T> {
   [key: string]: any;
 
   constructor(protected _provide: any) {
-    this._provide = getClass(this._provide);
-    this._useClass = getClass(this._provide);
-    this._store = Store.from(this._provide);
+    if (isClass(this._provide)) {
+      this._provide = getClass(this._provide);
+      this._store = Store.from(this._provide);
+    }
   }
 
   /**
@@ -37,7 +58,7 @@ export class Provider<T> implements IProvider<T> {
    * @param value
    */
   set provide(value: any) {
-    this._provide = value;
+    this._provide = getClass(value);
   }
 
   /**
@@ -53,40 +74,10 @@ export class Provider<T> implements IProvider<T> {
    * @param value
    */
   set useClass(value: Type<T>) {
-    this._store = Store.from(value);
-    this._useClass = value;
-  }
-
-  /**
-   *
-   * @returns {T}
-   */
-  get instance(): T {
-    return this._instance;
-  }
-
-  /**
-   *
-   * @param value
-   */
-  set instance(value: T) {
-    this._instance = value;
-  }
-
-  /**
-   *
-   * @returns {any}
-   */
-  get type(): any {
-    return this._type;
-  }
-
-  /**
-   *
-   * @param value
-   */
-  set type(value: any) {
-    this._type = value;
+    if (isClass(value)) {
+      this._store = Store.from(value);
+      this._useClass = getClass(value);
+    }
   }
 
   /**
@@ -110,7 +101,7 @@ export class Provider<T> implements IProvider<T> {
    * @returns {boolean}
    */
   get scope(): ProviderScope {
-    return this.store.get("scope");
+    return (this._store && this.store.get("scope")) || this._scope;
   }
 
   /**
@@ -118,15 +109,22 @@ export class Provider<T> implements IProvider<T> {
    * @param scope
    */
   set scope(scope: ProviderScope) {
-    this.store.set("scope", scope);
+    if (this._store) {
+      this.store.set("scope", scope);
+    } else {
+      this._scope = scope;
+    }
   }
 
   clone(): Provider<any> {
     const provider = new Provider(this._provide);
-    provider._type = this._type;
+    provider.type = this.type;
     provider.useClass = this._useClass;
     provider._instance = this._instance;
+    provider.useFactory = this.useFactory;
+    provider.deps = this.deps;
     provider._options = this._options;
+    provider._scope = this._scope;
 
     return provider;
   }

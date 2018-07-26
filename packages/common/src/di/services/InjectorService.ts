@@ -210,6 +210,7 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    */
   invoke<T>(target: TokenProvider, locals: LocalsContainer = new Map(), options: Partial<IInvokeOptions<T>> = {}): T {
     const {token, deps, scope, useScope, construct} = this.mapInvokeOptions(target, options);
+
     const services = deps.map(dependency =>
       this.mapServices({
         token,
@@ -263,19 +264,20 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    */
   invokeMethod(handler: any, locals: LocalsContainer = new Map(), options: IInvokeMethodOptions<any>): any {
     const {target, methodName} = options;
-    const {deps, construct} = this.mapInvokeOptions(handler, {
-      deps: Metadata.getParamTypes(prototypeOf(target), methodName),
-      ...options
-    });
 
     if (handler.$injected) {
       return handler.call(target, locals);
     }
 
+    const {deps, construct} = this.mapInvokeOptions(handler, {
+      deps: target && Metadata.getParamTypes(prototypeOf(target), methodName),
+      ...options
+    });
+
     const services = deps.map((dependency: any) =>
       this.mapServices({
         dependency,
-        token: target,
+        token: target || handler,
         locals,
         useScope: false
       })

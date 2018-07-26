@@ -109,7 +109,7 @@ export const registerFactory = (provider: any | IProvider<any>, instance?: any):
     provider,
     {type: ProviderType.FACTORY}
   );
-  this.getRegistry(ProviderType.FACTORY).merge(provider.provide, provider);
+  GlobalProviders.getRegistry(ProviderType.FACTORY).merge(provider.provide, provider);
 };
 /**
  * Add a new service in the `ProviderRegistry`. This service will be built when `InjectorService` will be loaded.

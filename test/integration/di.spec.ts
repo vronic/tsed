@@ -16,7 +16,7 @@ describe("DI", () => {
 
       this.rebuildHandler = provider.scope !== ProviderScope.SINGLETON;
 
-      this.instance = injector.invoke(target, this.locals, undefined, true);
+      this.instance = injector.invoke(target, this.locals, {useScope: true});
     })
   );
 

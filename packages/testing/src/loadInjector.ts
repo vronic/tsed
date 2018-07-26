@@ -1,7 +1,7 @@
-import {Bootstrap, ServerSettingsService, SettingsService} from "@tsed/common";
+import {Bootstrap, InjectorService, ServerSettingsService, SettingsService} from "@tsed/common";
 import {Env} from "@tsed/core";
 
-export async function loadInjector() {
+export async function loadInjector(): Promise<InjectorService | undefined> {
   const bootstrap = new Bootstrap();
   const injector = bootstrap.injector;
 

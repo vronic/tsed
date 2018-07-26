@@ -772,38 +772,6 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
   //
   //   return globalInjector.load();
   // }
-
-  /**
-   * Add a new service in the registry. This service will be constructed when `InjectorService`will loaded.
-   *
-   * #### Example
-   *
-   * ```typescript
-   * import {InjectorService} from "@tsed/common";
-   *
-   * export default class MyFooService {
-   *     constructor(){}
-   *     getFoo() {
-   *         return "test";
-   *     }
-   * }
-   *
-   * InjectorService.service(MyFooService);
-   * const injector = new InjectorService();
-   * injector.load();
-   *
-   * const myFooService = injector.get<MyFooService>(MyFooService);
-   * myFooService.getFoo(); // test
-   * ```
-   *
-   * @param target The class to add in registry.
-   * @deprecated Use registerService or registerFactory instead of.
-   */
-  // @Deprecated("Use registerService() util instead of")
-  /* istanbul ignore next */
-  // static service(target: any) {
-  //   return registerService(target);
-  // }
 }
 
 /**

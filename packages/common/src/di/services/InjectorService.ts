@@ -711,29 +711,6 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
   // static invokeMethod(handler: any, options: IInvokeMethodOptions<any> | any[]) {
   //   return globalInjector.invokeMethod(handler, options);
   // }
-
-  /**
-   * Set a new provider from providerSetting.
-   * @param provider provide token.
-   * @param instance Instance
-   * @deprecated Use registerProvider or registerService or registerFactory instead of
-   */
-  // @Deprecated("Use registerService(), registerFactory() or registerProvider() util instead of")
-  // /* istanbul ignore next */
-  // static set(provider: IProvider<any> | any, instance?: any) {
-  //   if (!provider.provide) {
-  //     provider = {
-  //       provide: provider,
-  //       type: "factory",
-  //       useClass: provider,
-  //       instance: instance || provider
-  //     };
-  //   }
-  //
-  //   registerProvider(provider);
-  //
-  //   return InjectorService;
-  // }
 }
 
 /**

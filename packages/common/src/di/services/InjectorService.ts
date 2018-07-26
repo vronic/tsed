@@ -591,39 +591,6 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
       }
     }
   }
-
-  /**
-   * Invoke the class and inject all services that required by the class constructor.
-   *
-   * #### Example
-   *
-   * ```typescript
-   * import {InjectorService} from "@tsed/common";
-   * import MyService from "./services";
-   *
-   * class OtherService {
-   *     constructor(injectorService: InjectorService) {
-   *          const myService = injectorService.invoke<MyService>(MyService);
-   *      }
-   *  }
-   * ```
-   *
-   * @param target The injectable class to invoke. Class parameters are injected according constructor signature.
-   * @param locals  Optional object. If preset then any argument Class are read from this object first, before the `InjectorService` is consulted.
-   * @param designParamTypes Optional object. List of injectable types.
-   * @param usScope
-   * @returns {T} The class constructed.
-   */
-  // @Deprecated("removed feature")
-  // /* istanbul ignore next */
-  // static invoke<T>(
-  //   target: any,
-  //   locals: Map<string | Function, any> = new Map<Function, any>(),
-  //   designParamTypes?: any[],
-  //   usScope: boolean = false
-  // ): T {
-  //   return globalInjector.invoke(target, locals, designParamTypes, usScope);
-  // }
 }
 
 /**

@@ -674,43 +674,6 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
   // static get<T>(target: RegistryKey): T {
   //   return globalInjector.get(target)!.instance;
   // }
-
-  /**
-   * Invoke a class method and inject service.
-   *
-   * #### IInvokeMethodOptions options
-   *
-   * * **target**: Optional. The class instance.
-   * * **methodName**: `string` Optional. The method name.
-   * * **designParamTypes**: `any[]` Optional. List of injectable types.
-   * * **locals**: `Map<Function, any>` Optional. If preset then any argument Class are read from this object first, before the `InjectorService` is consulted.
-   *
-   * #### Example
-   *
-   * ```typescript
-   * import {InjectorService} from "@tsed/common";
-   *
-   * class MyService {
-   *      constructor(injectorService: InjectorService) {
-   *          injectorService.invokeMethod(this.method.bind(this), {
-   *              target: this,
-   *              methodName: 'method'
-   *          });
-   *      }
-   *
-   *   method(otherService: OtherService) {}
-   * }
-   * ```
-   *
-   * @returns {any}
-   * @param handler The injectable method to invoke. Method parameters are injected according method signature.
-   * @param options Object to configure the invocation.
-   */
-  // @Deprecated("removed feature")
-  // /* istanbul ignore next */
-  // static invokeMethod(handler: any, options: IInvokeMethodOptions<any> | any[]) {
-  //   return globalInjector.invokeMethod(handler, options);
-  // }
 }
 
 /**

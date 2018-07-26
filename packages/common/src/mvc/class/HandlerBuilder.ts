@@ -71,7 +71,7 @@ export class HandlerBuilder {
     this._rebuildHandler = provider.scope !== ProviderScope.SINGLETON;
 
     if (this._rebuildHandler || instance === undefined) {
-      instance = this.injector.invoke<T>(target, locals, undefined, true);
+      instance = this.injector.invoke<T>(target, locals, {useScope: true});
       locals.set(this.handlerMetadata.target, instance);
     }
 

@@ -4,22 +4,6 @@ import {ControllerBuilder} from "../../../../packages/common/src/mvc/class/Contr
 import {ControllerService} from "../../../../packages/common/src/mvc/services/ControllerService";
 import {Sinon} from "../../../tools";
 
-class Test {
-  constructor(private testService: TestService) {}
-
-  test() {
-    this.testService.fake();
-  }
-}
-
-class TestService {
-  constructor() {}
-
-  fake() {}
-}
-
-// const pushRouterPath = Sinon.stub();
-
 describe("ControllerService", () => {
   describe("buildRouters()", () => {
     class Test {}

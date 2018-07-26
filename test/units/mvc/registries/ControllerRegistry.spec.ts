@@ -1,17 +1,13 @@
-import {ControllerProvider, ExpressRouter, GlobalProviders, ProviderType} from "@tsed/common";
+import {ControllerProvider, ExpressRouter} from "@tsed/common";
 import {expect} from "../../../tools";
 
 describe("ControllerRegistry", () => {
-  class Test {
-  }
+  class Test {}
 
   before(() => {
-    const settings = GlobalProviders.getRegistrySettings(ProviderType.CONTROLLER);
-
     this.locals = new Map();
     this.provider = new ControllerProvider(Test);
     this.provider.router = "router";
-    // settings.onInvoke!(this.provider, this.locals, []);
   });
 
   it("should store ExpressRouter", () => {

@@ -76,8 +76,6 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
     super();
 
     this.injector.createAlias(SettingsService, ServerSettingsService);
-    // this.createServerSettingsService();
-    // this.createExpressApplication();
     this.readSettingsMetadata();
   }
 
@@ -108,78 +106,6 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
   get components(): IProvider<any>[] {
     return this._components;
   }
-
-  /**
-   *
-   * @returns {Express}
-   */
-  // protected createExpressApplication(): ServerLoader {
-  //   const expressApp = Express();
-  //   const originalUse = expressApp.use;
-  //   const injector = this.injector;
-  //
-  //   expressApp.use = function(...args: any[]) {
-  //     args = args.map(arg => {
-  //       if (injector.has(arg)) {
-  //         arg = HandlerBuilder.from(arg).build(injector);
-  //       }
-  //
-  //       return arg;
-  //     });
-  //
-  //     return originalUse.call(this, ...args);
-  //   };
-  //
-  //   this.injector.forkProvider(ExpressApplication, expressApp);
-  //
-  //   return this;
-  // }
-
-  /**
-   * Create a new HTTP server with the provided `port`.
-   * @returns {ServerLoader}
-   */
-  // public createHttpServer(port: string | number): ServerLoader {
-  //   // const httpServer: any = Http.createServer(this.expressApp);
-  //   // // TODO to be removed
-  //   // /* istanbul ignore next */
-  //   // httpServer.get = () => httpServer;
-  //   //
-  //   // this.injector.forkProvider(HttpServer, httpServer);
-  //
-  //   this.settings.httpPort = port;
-  //
-  //   return this;
-  // }
-
-  /**
-   * Create a new HTTPs server.
-   *
-   * `options` {IHTTPSServerOptions}:
-   *
-   * - `port` &lt;number&gt;: Port number,
-   * - `key` &lt;string&gt; | &lt;string[]&gt; | [&lt;Buffer&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer) | &lt;Object[]&gt;: The private key of the server in PEM format. To support multiple keys using different algorithms an array can be provided either as a plain array of key strings or an array of objects in the format `{pem: key, passphrase: passphrase}`. This option is required for ciphers that make use of private keys.
-   * - `passphrase` &lt;string&gt; A string containing the passphrase for the private key or pfx.
-   * - `cert` &lt;string&gt; | &lt;string[]&gt; | [&lt;Buffer&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer) | [&lt;Buffer[]&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer): A string, Buffer, array of strings, or array of Buffers containing the certificate key of the server in PEM format. (Required)
-   * - `ca` &lt;string&gt; | &lt;string[]&gt; | [&lt;Buffer&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer) | [&lt;Buffer[]&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer): A string, Buffer, array of strings, or array of Buffers of trusted certificates in PEM format. If this is omitted several well known "root" CAs (like VeriSign) will be used. These are used to authorize connections.
-   *
-   * See more info on [httpsOptions](https://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener).
-   *
-   * @param options Options to create new HTTPS server.
-   * @returns {ServerLoader}
-   */
-  // public createHttpsServer(options: IHTTPSServerOptions): ServerLoader {
-  //   // const httpsServer: any = Https.createServer(options, this.expressApp);
-  //   // // TODO to be removed
-  //   // /* istanbul ignore next */
-  //   // httpsServer.get = () => httpsServer;
-  //   //
-  //   // this.injector.forkProvider(HttpsServer, httpsServer);
-  //
-  //   this.settings.httpsPort = options.port;
-  //
-  //   return this;
-  // }
 
   /**
    * This method let you to add a express middleware or a Ts.ED middleware like GlobalAcceptMimes.
@@ -552,22 +478,6 @@ export abstract class ServerLoader extends Bootstrap implements IServerLifecycle
           $log.warn("The componentsScan options is deprecated. Use providers instead of.", this.settings.componentsScan);
           this.settings.componentsScan.forEach(componentDir => this.scan(componentDir));
           break;
-
-        // case "httpPort":
-        //   /* istanbul ignore else */
-        //   if (value !== false && this.httpServer === undefined) {
-        //     this.createHttpServer(value);
-        //   }
-        //
-        //   break;
-        //
-        // case "httpsPort":
-        //   /* istanbul ignore else */
-        //   if (value !== false && this.httpsServer === undefined) {
-        //     this.createHttpsServer(Object.assign(map.get("httpsOptions") || {}, {port: value}));
-        //   }
-        //
-        //   break;
       }
     };
 

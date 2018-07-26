@@ -624,19 +624,6 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
   // ): T {
   //   return globalInjector.invoke(target, locals, designParamTypes, usScope);
   // }
-
-  /**
-   * Construct the service with his dependencies.
-   * @param target The service to be built.
-   * @deprecated
-   */
-  // @Deprecated("removed feature")
-  // /* istanbul ignore next */
-  // static construct<T>(target: Type<any> | symbol): T {
-  //   const provider: Provider<any> = ProviderRegistry.get(target)!;
-  //
-  //   return this.invoke<any>(provider.useClass);
-  // }
 }
 
 /**

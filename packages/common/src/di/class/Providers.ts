@@ -1,6 +1,7 @@
 import {Registry, RegistryKey, Type} from "@tsed/core";
 import {IProvider, TypedProvidersRegistry} from "../interfaces";
 import {RegistrySettings} from "../interfaces/RegistrySettings";
+import {GlobalProviders} from "../registries/ProviderRegistry";
 import {Provider} from "./Provider";
 
 export class Providers extends Registry<Provider<any>, IProvider<any>> {
@@ -93,5 +94,15 @@ export class Providers extends Registry<Provider<any>, IProvider<any>> {
    */
   getRegistry(target: string | RegistryKey): TypedProvidersRegistry {
     return this.getRegistrySettings(target).registry;
+  }
+
+  toArray() {
+    const providers: {provider: Provider<any>; token: RegistryKey}[] = [];
+
+    GlobalProviders.forEach((provider: Provider<any>, token: RegistryKey) => {
+      providers.push({token, provider: provider.clone()});
+    });
+
+    return providers;
   }
 }

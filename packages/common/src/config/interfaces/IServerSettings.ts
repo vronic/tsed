@@ -3,9 +3,9 @@
  */
 /** */
 
-import {Env} from "@tsed/core";
 import * as Https from "https";
 import {ProviderScope} from "../../di/interfaces";
+import {IBootstrapSettings} from "../../di/interfaces/IBootstrapSettings";
 
 /**
  *
@@ -82,15 +82,7 @@ export interface IRouterSettings {
   strict?: boolean;
 }
 
-export interface IServerSettings {
-  /**
-   * The root directory where you build run project. By default, it's equal to `process.cwd().
-   */
-  rootDir?: string;
-  /**
-   * The environment profile. By default the environment profile is equals to `NODE_ENV`.
-   */
-  env?: Env;
+export interface IServerSettings extends IBootstrapSettings {
   /**
    * Port number for the [HTTP.Server](https://nodejs.org/api/http.html#http_class_http_server).
    */
@@ -119,14 +111,7 @@ export interface IServerSettings {
    * Mount all controllers under a directories to an endpoint.
    */
   mount?: IServerMountDirectories;
-  /**
-   * List of directories to scan [Services](/docs/services.md), [Middlewares](/docs/middlewares.md) or [Converters](/docs/converters.md).
-   */
-  componentsScan?: (string | RegExp)[];
-  /**
-   * List of glob patterns. Exclude all files which matching with this list when ServerLoader scan all components with the `mount` or `scanComponents` options.
-   */
-  exclude?: string[];
+
   /**
    * Object to mount all directories under to his endpoints. See more on [Serve Static](/tutorials/serve-static-files.md).
    */
@@ -162,8 +147,14 @@ export interface IServerSettings {
    *
    * - Default: `singleton`. See [Scope](/docs/scope.md).
    * - Values: `singleton`, `request`.
+   * @deprecated Use scopes options instead
    */
   controllerScope?: ProviderScope;
+  /**
+   * List of directories to scan [Services](/docs/services.md), [Middlewares](/docs/middlewares.md) or [Converters](/docs/converters.md).
+   * @deprecated use providers instead of.
+   */
+  componentsScan?: (string | RegExp)[];
   /**
    * Global configuration for the Express.Router. See express [documentation](http://expressjs.com/en/api.html#express.router).
    */

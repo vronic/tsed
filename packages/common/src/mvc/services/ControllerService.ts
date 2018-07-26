@@ -1,4 +1,4 @@
-import {Deprecated, ProxyMap, Type} from "@tsed/core";
+import {ProxyMap, Type} from "@tsed/core";
 import * as Express from "express";
 import {$log} from "ts-log-debug";
 import {ServerSettingsService} from "../../config/services/ServerSettingsService";
@@ -9,7 +9,6 @@ import {IComponentScanned} from "../../server/interfaces";
 import {ControllerBuilder} from "../class/ControllerBuilder";
 import {ControllerProvider} from "../class/ControllerProvider";
 import {ExpressApplication} from "../decorators";
-import {ControllerRegistry} from "../registries/ControllerRegistry";
 import {RouteService} from "./RouteService";
 
 /**
@@ -37,43 +36,9 @@ export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvi
 
   /**
    *
-   * @param target
-   * @returns {ControllerProvider}
-   * @deprecated
-   */
-  @Deprecated("static ControllerService.get(). Removed feature.")
-  static get(target: Type<any>): ControllerProvider | undefined {
-    return ControllerRegistry.get(target) as ControllerProvider;
-  }
-
-  /**
-   *
-   * @param target
-   * @deprecated
-   */
-  @Deprecated("static ControllerService.has(). Removed feature.")
-  static has(target: Type<any>) {
-    return ControllerRegistry.has(target);
-  }
-
-  /**
-   *
-   * @param target
-   * @param provider
-   * @deprecated
-   */
-  @Deprecated("static ControllerService.set(). Removed feature.")
-  static set(target: Type<any>, provider: ControllerProvider) {
-    ControllerRegistry.set(target, provider);
-
-    return this;
-  }
-
-  /**
-   *
    * @param components
    */
-  public $onRoutesInit(components: {file: string; endpoint: string; classes: any[]}[]) {
+  public $onRoutesInit(components: IComponentScanned[]) {
     $log.info("Map controllers");
     this.mapComponents(components);
   }
@@ -96,16 +61,12 @@ export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvi
    * @param components
    */
   private mapComponents(components: IComponentScanned[]) {
-    components.forEach(component => {
-      Object.keys(component.classes)
-        .map(clazzName => component.classes[clazzName])
-        .filter(clazz => component.endpoint && this.has(clazz))
-        .map(clazz => this.get(clazz))
-        .forEach((provider: ControllerProvider) => {
-          if (!provider.hasParent()) {
-            this.mountRouter(component.endpoint!, provider);
-          }
-        });
+    components.filter(component => component.endpoint && this.has(component.token)).forEach(({token, endpoint}) => {
+      const provider = this.get(token)!;
+
+      if (!provider.hasParent()) {
+        this.mountRouter(endpoint, provider);
+      }
     });
   }
 
@@ -118,19 +79,6 @@ export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvi
     const route = provider.getEndpointUrl(endpoint!);
     this.routeService.addRoute({provider, route});
     this.expressApplication.use(route, provider.router);
-  }
-
-  /**
-   * Invoke a controller from his Class.
-   * @param target
-   * @param locals
-   * @param designParamTypes
-   * @returns {T}
-   * @deprecated
-   */
-  @Deprecated("ControllerService.invoke(). Removed feature. Use injectorService.invoke instead of.")
-  public invoke<T>(target: any, locals: Map<Type<any> | any, any> = new Map<Type<any>, any>(), designParamTypes?: any[]): T {
-    return this.injectorService.invoke<T>(target.provide || target, locals, designParamTypes);
   }
 
   get routes(): {route: string; provider: any}[] {

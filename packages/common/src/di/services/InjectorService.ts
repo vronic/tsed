@@ -12,7 +12,6 @@ import {
   Type
 } from "@tsed/core";
 import {$log} from "ts-log-debug";
-import {ServerSettingsService} from "../../config/services/ServerSettingsService";
 import {Provider} from "../class/Provider";
 import {InjectionError} from "../errors/InjectionError";
 import {InjectionScopeError} from "../errors/InjectionScopeError";
@@ -20,6 +19,7 @@ import {IInjectableMethod, IProvider, ProviderScope} from "../interfaces";
 import {IInjectableProperties, IInjectablePropertyService, IInjectablePropertyValue} from "../interfaces/IInjectableProperties";
 import {ProviderType} from "../interfaces/ProviderType";
 import {GlobalProviders, ProviderRegistry, registerFactory, registerProvider, registerService} from "../registries/ProviderRegistry";
+import {SettingsService} from "./SettingsService";
 
 let globalInjector: any;
 
@@ -55,7 +55,7 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
   }
 
   get settings() {
-    return this.getProvider(ServerSettingsService)!.instance;
+    return this.getProvider(SettingsService)!.instance;
   }
 
   /**
@@ -69,9 +69,9 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    *
    */
   private initSettings() {
-    const provider = GlobalProviders.get(ServerSettingsService)!;
+    const provider = GlobalProviders.get(SettingsService)!;
 
-    this.forkProvider(ServerSettingsService, this.invoke<ServerSettingsService>(provider.useClass));
+    this.forkProvider(SettingsService, this.invoke<SettingsService>(provider.useClass));
   }
 
   /**
@@ -104,6 +104,38 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    */
   has(key: RegistryKey): boolean {
     return super.has(getClassOrSymbol(key)) && !!this.get(key);
+  }
+
+  /**
+   *
+   * @param obj
+   * @param options
+   */
+  addProvider(obj: Type<any> | IProvider<any>): this {
+    let token: RegistryKey;
+    let provider: IProvider<any>;
+
+    if ("provide" in obj) {
+      token = obj.provide;
+      provider = obj as IProvider<any>;
+    } else {
+      token = obj as RegistryKey;
+      provider = {provide: obj} as IProvider<any>;
+    }
+
+    if (!GlobalProviders.has(token)) {
+      registerProvider(provider);
+    }
+
+    const clonedProvider = GlobalProviders.get(token)!.clone();
+
+    Object.keys(provider).forEach(key => {
+      clonedProvider[key] = (provider as any)[key];
+    });
+
+    this.set(token, clonedProvider);
+
+    return this;
   }
 
   /**
@@ -405,13 +437,6 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    * Initialize injectorService and load all services/factories.
    */
   async load(): Promise<any> {
-    // TODO copy all provider from GlobalProvider registry. In future this action will be performed from Bootstrap class
-    GlobalProviders.forEach((p, k) => {
-      if (!this.has(k)) {
-        this.set(k, p.clone());
-      }
-    });
-
     this.build();
 
     return Promise.all([this.emit("$onInit")]);
@@ -423,15 +448,14 @@ export class InjectorService extends Map<RegistryKey, Provider<any>> {
    */
   private build(): Map<Type<any>, any> {
     const locals: Map<Type<any>, any> = new Map();
-    const config = this.get<ServerSettingsService>(ServerSettingsService)!;
 
     this.forEach(provider => {
       const token = nameOf(provider.provide);
-      const settings = GlobalProviders.getRegistrySettings(provider.type);
+      const registrySettings = GlobalProviders.getRegistrySettings(provider.type);
       const useClass = nameOf(provider.useClass);
 
-      if (settings.buildable) {
-        const defaultScope: ProviderScope = config.get(`${provider.type}Scope`) || ProviderScope.SINGLETON;
+      if (registrySettings.buildable) {
+        const defaultScope: ProviderScope = this.settings.scopeOf(provider.type);
 
         if (defaultScope && !provider.scope) {
           provider.scope = defaultScope;

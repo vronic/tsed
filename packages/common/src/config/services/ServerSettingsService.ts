@@ -1,15 +1,12 @@
-import {Deprecated, Env, getValue, Metadata, setValue} from "@tsed/core";
+import {Deprecated, Env, Metadata, setValue} from "@tsed/core";
 import * as Https from "https";
 import {$log} from "ts-log-debug";
 import {ProviderScope} from "../../di/interfaces/ProviderScope";
-/**
- * `ServerSettingsService` contains all information about [ServerLoader](/api/common/server/components/ServerLoader.md) configuration.
- */
 import {registerFactory} from "../../di/registries/ProviderRegistry";
+import {SettingsService} from "../../di/services/SettingsService";
 import {SERVER_SETTINGS} from "../constants/index";
 import {IErrorsSettings, ILoggerSettings, IRouterSettings, IServerMountDirectories, IServerSettings} from "../interfaces/IServerSettings";
 
-const rootDir = process.cwd();
 /**
  * @deprecated
  */
@@ -20,12 +17,13 @@ export let globalServerSettings: ServerSettingsService;
 // tslint:disable-next-line: variable-name
 export let GlobalServerSettings: ServerSettingsService;
 
-export class ServerSettingsService implements IServerSettings {
-  protected map = new Map<string, any>();
-
+/**
+ * `ServerSettingsService` contains all information about [ServerLoader](/api/common/server/components/ServerLoader.md) configuration.
+ */
+export class ServerSettingsService extends SettingsService implements IServerSettings {
   constructor() {
-    this.rootDir = rootDir;
-    this.env = (process.env.NODE_ENV as Env) || Env.DEV;
+    super();
+
     this.port = 8080;
     this.httpsPort = 8000;
     this.version = "1.0.0";
@@ -45,10 +43,6 @@ export class ServerSettingsService implements IServerSettings {
       "/rest": "${rootDir}/controllers/**/*.ts"
     };
 
-    this.exclude = ["**/*.spec.ts", "**/*.spec.js"];
-
-    this.componentsScan = ["${rootDir}/mvc/**/*.ts", "${rootDir}/services/**/*.ts", "${rootDir}/converters/**/*.ts"];
-
     GlobalServerSettings = globalServerSettings = this;
   }
 
@@ -57,11 +51,11 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {any}
    */
   get version() {
-    return this.map.get("version");
+    return this.get("version");
   }
 
   set version(v: string) {
-    this.map.set("version", v);
+    this.set("version", v);
   }
 
   /**
@@ -69,7 +63,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {any}
    */
   get rootDir() {
-    return this.map.get("rootDir");
+    return this.get("rootDir");
   }
 
   /**
@@ -77,7 +71,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set rootDir(value: string) {
-    this.map.set("rootDir", value);
+    this.set("rootDir", value);
   }
 
   /**
@@ -93,7 +87,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   get httpsOptions(): Https.ServerOptions {
-    return this.map.get("httpsOptions");
+    return this.get("httpsOptions");
   }
 
   /**
@@ -101,7 +95,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set httpsOptions(value: Https.ServerOptions) {
-    this.map.set("httpsOptions", value);
+    this.set("httpsOptions", value);
   }
 
   /**
@@ -109,7 +103,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {undefined|any}
    */
   get httpPort(): string | number {
-    return this.map.get("httpPort");
+    return this.get("httpPort");
   }
 
   /**
@@ -117,7 +111,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set httpPort(value: string | number) {
-    this.map.set("httpPort", value);
+    this.set("httpPort", value);
   }
 
   /**
@@ -125,7 +119,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {undefined|any}
    */
   get httpsPort(): string | number {
-    return this.map.get("httpsPort");
+    return this.get("httpsPort");
   }
 
   /**
@@ -133,7 +127,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set httpsPort(value: string | number) {
-    this.map.set("httpsPort", value);
+    this.set("httpsPort", value);
   }
 
   /**
@@ -141,7 +135,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {string}
    */
   get uploadDir(): string {
-    return this.map.get("uploadDir");
+    return this.get("uploadDir");
   }
 
   /**
@@ -149,7 +143,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set uploadDir(value: string) {
-    this.map.set("uploadDir", value);
+    this.set("uploadDir", value);
   }
 
   /**
@@ -157,7 +151,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {Map<string, any>}
    */
   get env(): Env {
-    return this.map.get("env");
+    return this.get("env");
   }
 
   /**
@@ -165,7 +159,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set env(value: Env) {
-    this.map.set("env", value);
+    this.set("env", value);
   }
 
   /**
@@ -173,7 +167,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {undefined|any}
    */
   get mount(): IServerMountDirectories {
-    return this.map.get("mount") || {};
+    return this.get("mount") || {};
   }
 
   /**
@@ -181,7 +175,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set mount(value: IServerMountDirectories) {
-    this.map.set("mount", value);
+    this.set("mount", value);
   }
 
   /**
@@ -189,7 +183,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {undefined|any}
    */
   get componentsScan(): string[] {
-    return this.map.get("componentsScan") || [];
+    return this.get("componentsScan") || [];
   }
 
   /**
@@ -197,7 +191,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set componentsScan(value: string[]) {
-    this.map.set("componentsScan", value);
+    this.set("componentsScan", value);
   }
 
   /**
@@ -205,7 +199,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {undefined|any}
    */
   get serveStatic(): IServerMountDirectories {
-    return this.map.get("serveStatic") || {};
+    return this.get("serveStatic") || {};
   }
 
   /**
@@ -213,7 +207,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set serveStatic(value: IServerMountDirectories) {
-    this.map.set("serveStatic", value);
+    this.set("serveStatic", value);
   }
 
   /**
@@ -221,7 +215,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {undefined|any}
    */
   get acceptMimes(): string[] {
-    return this.map.get("acceptMimes") || ["application/json"];
+    return this.get("acceptMimes") || ["application/json"];
   }
 
   /**
@@ -229,7 +223,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param value
    */
   set acceptMimes(value: string[]) {
-    this.map.set("acceptMimes", value || []);
+    this.set("acceptMimes", value || []);
   }
 
   /**
@@ -253,7 +247,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {IRouterSettings}
    */
   get routers(): IRouterSettings {
-    return this.map.get("routers") || {};
+    return this.get("routers") || {};
   }
 
   /**
@@ -261,7 +255,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param {IRouterSettings} options
    */
   set routers(options: IRouterSettings) {
-    this.map.set("routers", options);
+    this.set("routers", options);
   }
 
   /**
@@ -269,7 +263,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {boolean}
    */
   get validationModelStrict(): boolean {
-    const value = this.map.get("validationModelStrict");
+    const value: boolean = this.get("validationModelStrict");
 
     return value === undefined ? true : value;
   }
@@ -279,7 +273,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param {boolean} value
    */
   set validationModelStrict(value: boolean) {
-    this.map.set("validationModelStrict", value);
+    this.set("validationModelStrict", value);
   }
 
   get logger(): Partial<ILoggerSettings> {
@@ -289,12 +283,12 @@ export class ServerSettingsService implements IServerSettings {
       {
         requestFields
       },
-      this.map.get("logger")
-    );
+      this.get("logger")
+    ) as ILoggerSettings;
   }
 
   set logger(value: Partial<ILoggerSettings>) {
-    this.map.set("logger", value);
+    this.set("logger", value);
 
     if (value.format) {
       $log.appenders.set("stdout", {
@@ -318,19 +312,19 @@ export class ServerSettingsService implements IServerSettings {
   }
 
   set exclude(exclude: string[]) {
-    this.map.set("exclude", exclude);
+    this.set("exclude", exclude);
   }
 
   get exclude() {
-    return this.map.get("exclude") || [];
+    return this.get("exclude") || [];
   }
 
   set controllerScope(scope: ProviderScope) {
-    this.map.set("scope", scope);
+    this.set("scope", scope);
   }
 
   get controllerScope(): ProviderScope {
-    return this.map.get("scope");
+    return this.get("scope");
   }
 
   /**
@@ -338,7 +332,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {IRouterSettings}
    */
   get errors(): IErrorsSettings {
-    return this.map.get("errors") || {};
+    return this.get("errors") || {};
   }
 
   /**
@@ -346,7 +340,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param {IRouterSettings} options
    */
   set errors(options: IErrorsSettings) {
-    this.map.set("errors", options);
+    this.set("errors", options);
   }
 
   /**
@@ -382,7 +376,7 @@ export class ServerSettingsService implements IServerSettings {
   @Deprecated("Removed feature")
   public $get(): ServerSettingsService {
     this.forEach((value, key) => {
-      this.map.set(key, this.resolve(value));
+      this.set(key, this.resolve(value));
     });
 
     return this;
@@ -390,28 +384,19 @@ export class ServerSettingsService implements IServerSettings {
 
   /**
    *
-   * @param callbackfn
-   * @param thisArg
-   */
-  forEach(callbackfn: (value: any, index: string, map: Map<string, any>) => void, thisArg?: any) {
-    return this.map.forEach(callbackfn, thisArg);
-  }
-
-  /**
-   *
    * @param propertyKey
    * @param value
    */
-  set(propertyKey: string | IServerSettings, value?: any): ServerSettingsService {
+  set(propertyKey: string | IServerSettings, value?: any): this {
     if (typeof propertyKey === "string") {
-      setValue(propertyKey, value, this.map);
+      setValue(propertyKey, value, this);
     } else {
       const self: any = this;
 
       Object.keys(propertyKey).forEach(key => {
         const descriptor = Object.getOwnPropertyDescriptor(ServerSettingsService.prototype, key);
 
-        if (descriptor && ["set", "map"].indexOf(key) === -1) {
+        if (descriptor && ["set", "get"].indexOf(key) === -1) {
           self[key] = propertyKey[key];
         } else {
           this.set(key, propertyKey[key]);
@@ -419,20 +404,11 @@ export class ServerSettingsService implements IServerSettings {
       });
 
       this.forEach((value, key) => {
-        this.map.set(key, this.resolve(value));
+        this.set(key, this.resolve(value));
       });
     }
 
     return this;
-  }
-
-  /**
-   *
-   * @param propertyKey
-   * @returns {undefined|any}
-   */
-  get<T>(propertyKey: string): T {
-    return this.resolve(getValue(propertyKey, this.map));
   }
 
   /**
@@ -461,7 +437,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {string|number}
    */
   getHttpPort(): {address: string; port: number} {
-    return ServerSettingsService.buildAddressAndPort(this.map.get("httpPort"));
+    return ServerSettingsService.buildAddressAndPort(this.get("httpPort"));
   }
 
   /**
@@ -469,7 +445,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param settings
    */
   setHttpPort(settings: {address: string; port: number}) {
-    this.map.set("httpPort", `${settings.address}:${settings.port}`);
+    this.set("httpPort", `${settings.address}:${settings.port}`);
   }
 
   /**
@@ -477,7 +453,7 @@ export class ServerSettingsService implements IServerSettings {
    * @returns {string|number}
    */
   getHttpsPort(): {address: string; port: number} {
-    return ServerSettingsService.buildAddressAndPort(this.map.get("httpsPort"));
+    return ServerSettingsService.buildAddressAndPort(this.get("httpsPort"));
   }
 
   /**
@@ -485,7 +461,7 @@ export class ServerSettingsService implements IServerSettings {
    * @param settings
    */
   setHttpsPort(settings: {address: string; port: number}) {
-    this.map.set("httpsPort", `${settings.address}:${settings.port}`);
+    this.set("httpsPort", `${settings.address}:${settings.port}`);
   }
 }
 

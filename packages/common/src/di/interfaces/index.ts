@@ -1,3 +1,4 @@
+export * from "./IBootstrapSettings";
 export * from "./IInjectableMethod";
 export * from "./IProvider";
 export * from "./OnInit";

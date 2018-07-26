@@ -1,6 +1,3 @@
-export interface IComponentScanned {
-  endpoint?: string;
-  classes: {[key: string]: any};
+import {IProvider} from "../../di/interfaces";
 
-  [key: string]: any;
-}
+export interface IComponentScanned extends IProvider<any> {}

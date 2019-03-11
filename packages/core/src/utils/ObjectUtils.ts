@@ -219,7 +219,7 @@ export function getInheritedClass(target: any): any {
 }
 
 /**
- *
+ * Return a list of classes ancestors for the given target
  * @param target
  * @returns {Array}
  */

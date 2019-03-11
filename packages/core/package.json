@@ -6,7 +6,6 @@
   "typings": "./src/index.ts",
   "dependencies": {
     "reflect-metadata": "^0.1.12",
-    "source-map-support": "^0.5.3",
     "tslib": "^1.8.0"
   },
   "peerDependencies": {},

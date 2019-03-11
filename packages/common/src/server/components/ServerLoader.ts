@@ -1,24 +1,8 @@
-import {isClass} from "@tsed/core";
 import {InjectorService} from "@tsed/di";
 import * as Express from "express";
-import * as globby from "globby";
-import * as Http from "http";
-import * as Https from "https";
-import * as Path from "path";
 import {$log} from "ts-log-debug";
-import {IServerSettings} from "../../config/interfaces/IServerSettings";
-import {ServerSettingsService} from "../../config/services/ServerSettingsService";
-
-import {GlobalErrorHandlerMiddleware} from "../../mvc";
-import {LogIncomingRequestMiddleware} from "../../mvc/components/LogIncomingRequestMiddleware";
-import {ExpressApplication} from "../../mvc/decorators/class/expressApplication";
-import {HttpServer} from "../decorators/httpServer";
-import {HttpsServer} from "../decorators/httpsServer";
-import {IComponentScanned, IHTTPSServerOptions, IServerLifecycle} from "../interfaces";
-import {createExpressApplication} from "../utils/createExpressApplication";
-import {createHttpServer} from "../utils/createHttpServer";
-import {createHttpsServer} from "../utils/createHttpsServer";
-import {createInjector} from "../utils/createInjector";
+import {IComponentScanned, IServerLifecycle} from "../interfaces";
+import {Bootstrap} from "./Bootstrap";
 
 /**
  * ServerLoader provider all method to instantiate an ExpressServer.
@@ -65,58 +49,15 @@ import {createInjector} from "../utils/createInjector";
 $log.name = "TSED";
 $log.level = "info";
 
-export abstract class ServerLoader implements IServerLifecycle {
+export class ServerLoader extends Bootstrap implements IServerLifecycle {
   public version: string = "0.0.0-PLACEHOLDER";
-  private _components: IComponentScanned[] = [];
-  private _scannedPromises: Promise<any>[] = [];
 
   /**
    *
    */
   constructor() {
-    const settings = ServerSettingsService.getMetadata(this);
-    this._injector = createInjector(settings);
-
-    createExpressApplication(this._injector);
-
-    if (settings) {
-      this.setSettings(settings);
-    }
-  }
-
-  private _injector: InjectorService;
-
-  /**
-   * Return the injectorService initialized by the server.
-   * @returns {InjectorService}
-   */
-  get injector(): InjectorService {
-    return this._injector;
-  }
-
-  /**
-   * Return the settings configured by the decorator [@ServerSettings](/api/common/server/decorators/ServerSettings.md).
-   *
-   * ```typescript
-   * @ServerSettings({
-   *    rootDir: Path.resolve(__dirname),
-   *    port: 8000,
-   *    httpsPort: 8080,
-   *    mount: {
-   *      "/rest": "${rootDir}/controllers/**\/*.js"
-   *    }
-   * })
-   * export class Server extends ServerLoader {
-   *     $onInit(){
-   *         console.log(this.settings); // {rootDir, port, httpsPort,...}
-   *     }
-   * }
-   * ```
-   *
-   * @returns {ServerSettingsService}
-   */
-  get settings(): ServerSettingsService {
-    return this.injector.settings as ServerSettingsService;
+    super(ServerLoader);
+    this.runSettings();
   }
 
   /**
@@ -124,7 +65,7 @@ export abstract class ServerLoader implements IServerLifecycle {
    * @returns {core.Express}
    */
   get expressApp(): Express.Application {
-    return this.injector.get<ExpressApplication>(ExpressApplication)!;
+    return this.driver();
   }
 
   /**
@@ -132,78 +73,7 @@ export abstract class ServerLoader implements IServerLifecycle {
    * @returns {InjectorService}
    */
   get injectorService(): InjectorService {
-    return this._injector;
-  }
-
-  /**
-   * Return Http.Server instance.
-   * @returns {Http.Server}
-   */
-  get httpServer(): Http.Server {
-    return this.injectorService.get<HttpServer>(HttpServer)!;
-  }
-
-  /**
-   * Return Https.Server instance.
-   * @returns {Https.Server}
-   */
-  get httpsServer(): Https.Server {
-    return this.injectorService.get<HttpsServer>(HttpsServer)!;
-  }
-
-  /**
-   *
-   * @returns {any}
-   * @param files
-   * @param excludes
-   */
-  static cleanGlobPatterns(files: string | string[], excludes: string[]): string[] {
-    excludes = excludes.map((s: string) => "!" + s.replace(/!/gi, ""));
-
-    return []
-      .concat(files as any)
-      .map((file: string) => {
-        if (!require.extensions[".ts"]) {
-          file = file.replace(/\.ts$/i, ".js");
-        }
-
-        return Path.resolve(file);
-      })
-      .concat(excludes as any);
-  }
-
-  /**
-   * Create a new HTTP server with the provided `port`.
-   * @returns {ServerLoader}
-   */
-  public createHttpServer(port: string | number): ServerLoader {
-    createHttpServer(this.injector);
-    this.settings.httpPort = port;
-
-    return this;
-  }
-
-  /**
-   * Create a new HTTPs server.
-   *
-   * `options` {IHTTPSServerOptions}:
-   *
-   * - `port` &lt;number&gt;: Port number,
-   * - `key` &lt;string&gt; | &lt;string[]&gt; | [&lt;Buffer&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer) | &lt;Object[]&gt;: The private key of the server in PEM format. To support multiple keys using different algorithms an array can be provided either as a plain array of key strings or an array of objects in the format `{pem: key, passphrase: passphrase}`. This option is required for ciphers that make use of private keys.
-   * - `passphrase` &lt;string&gt; A string containing the passphrase for the private key or pfx.
-   * - `cert` &lt;string&gt; | &lt;string[]&gt; | [&lt;Buffer&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer) | [&lt;Buffer[]&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer): A string, Buffer, array of strings, or array of Buffers containing the certificate key of the server in PEM format. (Required)
-   * - `ca` &lt;string&gt; | &lt;string[]&gt; | [&lt;Buffer&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer) | [&lt;Buffer[]&gt;](https://nodejs.org/api/buffer.html#buffer_class_buffer): A string, Buffer, array of strings, or array of Buffers of trusted certificates in PEM format. If this is omitted several well known "root" CAs (like VeriSign) will be used. These are used to authorize connections.
-   *
-   * See more info on [httpsOptions](https://nodejs.org/api/tls.html#tls_tls_createserver_options_secureconnectionlistener).
-   *
-   * @param options Options to create new HTTPS server.
-   * @returns {ServerLoader}
-   */
-  public createHttpsServer(options: IHTTPSServerOptions): ServerLoader {
-    createHttpsServer(this.injector, options);
-    this.settings.httpsPort = options.port;
-
-    return this;
+    return this.injector;
   }
 
   /**
@@ -235,7 +105,7 @@ export abstract class ServerLoader implements IServerLifecycle {
    * @returns {ServerLoader}
    */
   public use(...args: any[]): ServerLoader {
-    this.expressApp.use(...args);
+    this.driver().use(...args);
 
     return this;
   }
@@ -247,7 +117,7 @@ export abstract class ServerLoader implements IServerLifecycle {
    * @returns {ServerLoader}
    */
   public set(setting: string, val: any): ServerLoader {
-    this.expressApp.set(setting, val);
+    this.driver().set(setting, val);
 
     return this;
   }
@@ -269,21 +139,7 @@ export abstract class ServerLoader implements IServerLifecycle {
    * @returns {Promise<any>|Promise}
    */
   public async start(): Promise<any> {
-    try {
-      const start = new Date();
-      await this.loadSettingsAndInjector();
-      await this.loadMiddlewares();
-      await this.startServers();
-
-      await this.callHook("$onReady");
-      await this.injector.emit("$onServerReady");
-
-      $log.info(`Started in ${new Date().getTime() - start.getTime()} ms`);
-    } catch (err) {
-      this.callHook("$onServerInitError", undefined, err);
-
-      return Promise.reject(err);
-    }
+    return this.listen();
   }
 
   /**
@@ -319,22 +175,14 @@ export abstract class ServerLoader implements IServerLifecycle {
    * @param patterns
    * @param endpoint
    * @returns {ServerLoader}
+   * @deprecated
    */
   public scan(patterns: string | string[], endpoint?: string): ServerLoader {
-    const promises = globby.sync(ServerLoader.cleanGlobPatterns(patterns, this.settings.exclude)).map(async (file: string) => {
-      $log.debug(`Import file ${endpoint}:`, file);
-      try {
-        const classes: any[] = await import(file);
-        this.addComponents(classes, {endpoint});
-      } catch (er) {
-        /* istanbul ignore next */
-        $log.error(er);
-        /* istanbul ignore next */
-        process.exit(-1);
-      }
-    });
-
-    this._scannedPromises = this._scannedPromises.concat(promises);
+    if (endpoint) {
+      this.addControllers(endpoint, [].concat(patterns as any));
+    } else {
+      this.addComponents([].concat(patterns as any));
+    }
 
     return this;
   }
@@ -345,15 +193,7 @@ export abstract class ServerLoader implements IServerLifecycle {
    * @param options
    */
   public addComponents(classes: any | any[], options: Partial<IComponentScanned> = {}): ServerLoader {
-    classes = Object.keys(classes)
-      .map(key => classes[key])
-      .filter(clazz => isClass(clazz));
-
-    const components: any = Object.assign(options, {
-      classes
-    });
-
-    this._components = (this._components || []).concat([components]).filter(o => !!o);
+    this.settings.componentsScan = this.settings.componentsScan.concat(classes);
 
     return this;
   }
@@ -380,7 +220,7 @@ export abstract class ServerLoader implements IServerLifecycle {
    * @returns {ServerLoader}
    */
   public addControllers(endpoint: string, controllers: any[]) {
-    return this.addComponents(controllers, {endpoint});
+    this.settings.mount[endpoint] = (this.settings.mount[endpoint] || []).concat(controllers);
   }
 
   /**
@@ -389,104 +229,20 @@ export abstract class ServerLoader implements IServerLifecycle {
    * @param endpoint
    * @param list
    * @returns {ServerLoader}
+   * @deprecated
    */
+
+  /* istanbul ignore next */
   public mount(endpoint: string, list: any | string | (any | string)[]): ServerLoader {
-    const patterns = [].concat(list).filter((item: string) => {
-      if (isClass(item)) {
-        this.addControllers(endpoint, [item]);
-
-        return false;
-      }
-
-      return true;
-    });
-
-    this.scan(patterns, endpoint);
+    this.addControllers(endpoint, list);
 
     return this;
   }
 
   /**
    *
-   * @returns {Promise<void>}
    */
-  protected async loadSettingsAndInjector() {
-    const level = this.settings.logger.level;
-
-    /* istanbul ignore next */
-    if (level && this.settings.env !== "test") {
-      $log.level = level;
-    }
-
-    await Promise.all(this._scannedPromises);
-    await this.callHook("$onInit");
-
-    $log.debug("Initialize settings");
-
-    this.settings.forEach((value, key) => {
-      $log.info(`settings.${key} =>`, value);
-    });
-
-    $log.info("Build services");
-
-    await this.injector.load();
-    $log.debug("Settings and injector loaded");
-  }
-
-  /**
-   * Create a new server from settings parameters.
-   * @param http
-   * @param settings
-   * @returns {Promise<TResult2|TResult1>}
-   */
-  protected startServer(
-    http: Http.Server | Https.Server,
-    settings: {https: boolean; address: string | number; port: number}
-  ): Promise<{address: string; port: number}> {
-    const {address, port, https} = settings;
-
-    $log.debug(`Start server on ${https ? "https" : "http"}://${settings.address}:${settings.port}`);
-    const promise = new Promise((resolve, reject) => {
-      http.on("listening", resolve).on("error", reject);
-    }).then(() => {
-      const port = (http.address() as any).port;
-      $log.info(`HTTP Server listen on ${https ? "https" : "http"}://${settings.address}:${port}`);
-
-      return {address: settings.address as string, port};
-    });
-
-    http.listen(port, address as any);
-
-    return promise;
-  }
-
-  /**
-   * Initialize configuration of the express app.
-   */
-  protected async loadMiddlewares(): Promise<any> {
-    $log.debug("Mount middlewares");
-
-    this.use(LogIncomingRequestMiddleware);
-    await this.callHook("$onMountingMiddlewares", undefined, this.expressApp);
-    await this.injector.emit("$beforeRoutesInit");
-    await this.injector.emit("$onRoutesInit", this._components);
-
-    delete this._components; // free memory
-
-    await this.injector.emit("$afterRoutesInit");
-
-    await this.callHook("$afterRoutesInit", undefined, this.expressApp);
-
-    // Import the globalErrorHandler
-    this.use(GlobalErrorHandlerMiddleware);
-  }
-
-  /**
-   *
-   */
-  protected setSettings(settings: IServerSettings) {
-    this.settings.set(settings);
-
+  protected runSettings() {
     /* istanbul ignore next */
     if (this.settings.env === "test") {
       $log.stop();
@@ -494,14 +250,6 @@ export abstract class ServerLoader implements IServerLifecycle {
 
     const bind = (property: string, value: any, map: Map<string, any>) => {
       switch (property) {
-        case "mount":
-          Object.keys(this.settings.mount).forEach(key => this.mount(key, value[key]));
-          break;
-
-        case "componentsScan":
-          this.settings.componentsScan.forEach(componentDir => this.scan(componentDir));
-          break;
-
         case "httpPort":
           /* istanbul ignore else */
           if (value !== false && this.httpServer === undefined) {
@@ -526,47 +274,5 @@ export abstract class ServerLoader implements IServerLifecycle {
         bind(key, value, map);
       }
     });
-  }
-
-  private callHook = (key: string, elseFn = new Function(), ...args: any[]) => {
-    const self: any = this;
-
-    if (key in this) {
-      $log.debug(`\x1B[1mCall hook ${key}\x1B[22m`);
-
-      return self[key](...args);
-    }
-
-    return elseFn();
-  };
-
-  /**
-   * Initiliaze all servers.
-   * @returns {Bluebird<U>}
-   */
-  private async startServers(): Promise<any> {
-    const promises: Promise<any>[] = [];
-
-    /* istanbul ignore else */
-    if ((this.settings.httpPort as any) !== false) {
-      const settings = this.settings.getHttpPort();
-      promises.push(
-        this.startServer(this.httpServer, {https: false, ...settings}).then(settings => {
-          this.settings.setHttpPort(settings);
-        })
-      );
-    }
-
-    /* istanbul ignore else */
-    if ((this.settings.httpsPort as any) !== false) {
-      const settings = this.settings.getHttpsPort();
-      promises.push(
-        this.startServer(this.httpsServer, {https: true, ...settings}).then(settings => {
-          this.settings.setHttpsPort(settings);
-        })
-      );
-    }
-
-    return Promise.all<any>(promises);
   }
 }

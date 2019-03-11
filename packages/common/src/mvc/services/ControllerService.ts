@@ -1,9 +1,8 @@
 import {Deprecated, ProxyMap, Type} from "@tsed/core";
-import {ProviderType, InjectorService, ProviderScope, Injectable} from "@tsed/di";
+import {Injectable, InjectorService, IProvider, ProviderScope, ProviderType} from "@tsed/di";
 import * as Express from "express";
 import {$log} from "ts-log-debug";
 import {ServerSettingsService} from "../../config/services/ServerSettingsService";
-import {IComponentScanned} from "../../server/interfaces";
 import {ControllerBuilder} from "../class/ControllerBuilder";
 import {ControllerProvider} from "../class/ControllerProvider";
 import {ExpressApplication} from "../decorators";
@@ -34,6 +33,10 @@ export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvi
     super(injectorService as any, {filter: {type: ProviderType.CONTROLLER}});
 
     this.buildRouters();
+  }
+
+  get routes(): {route: string; provider: any}[] {
+    return this.routeService.routes || [];
   }
 
   /**
@@ -72,11 +75,42 @@ export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvi
 
   /**
    *
-   * @param components
+   * @param
    */
-  public $onRoutesInit(components: {file: string; endpoint: string; classes: any[]}[]) {
+  public $onRoutesInit() {
     $log.info("Map controllers");
-    this.mapComponents(components);
+    this.addComponents(this.settings.get("components"));
+  }
+
+  /**
+   * Invoke a controller from his Class.
+   * @param target
+   * @param locals
+   * @param designParamTypes
+   * @returns {T}
+   * @deprecated
+   */
+  @Deprecated("ControllerService.invoke(). Removed feature. Use injectorService.invoke instead of.")
+  public invoke<T>(target: any, locals: Map<Type<any> | any, any> = new Map<Type<any>, any>(), designParamTypes?: any[]): T {
+    return this.injectorService.invoke<T>(target.provide || target, locals, designParamTypes);
+  }
+
+  /**
+   * Take a list of partials providers and load theses components as Controller if the provider is found the injectorService.
+   * @param {Partial<IProvider<any>>[]} components
+   */
+  private addComponents(components: Partial<IProvider<any>>[]) {
+    components
+      .filter(partialProvider => partialProvider.endpoint && this.has(partialProvider.provide))
+      .forEach(partialProvider => {
+        const provider: ControllerProvider = this.get(partialProvider.provide)!;
+
+        if (!provider.hasParent()) {
+          this.mountRouter(partialProvider.endpoint!, provider);
+        }
+
+        return;
+      });
   }
 
   /**
@@ -94,24 +128,6 @@ export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvi
 
   /**
    *
-   * @param components
-   */
-  private mapComponents(components: IComponentScanned[]) {
-    components.forEach(component => {
-      Object.keys(component.classes)
-        .map(clazzName => component.classes[clazzName])
-        .filter(clazz => component.endpoint && this.has(clazz))
-        .map(clazz => this.get(clazz))
-        .forEach((provider: ControllerProvider) => {
-          if (!provider.hasParent()) {
-            this.mountRouter(component.endpoint!, provider);
-          }
-        });
-    });
-  }
-
-  /**
-   *
    * @param {string} endpoint
    * @param {ControllerProvider} provider
    */
@@ -119,22 +135,5 @@ export class ControllerService extends ProxyMap<Type<any> | any, ControllerProvi
     const route = provider.getEndpointUrl(endpoint!);
     this.routeService.addRoute({provider, route});
     this.expressApplication.use(route, provider.router);
-  }
-
-  /**
-   * Invoke a controller from his Class.
-   * @param target
-   * @param locals
-   * @param designParamTypes
-   * @returns {T}
-   * @deprecated
-   */
-  @Deprecated("ControllerService.invoke(). Removed feature. Use injectorService.invoke instead of.")
-  public invoke<T>(target: any, locals: Map<Type<any> | any, any> = new Map<Type<any>, any>(), designParamTypes?: any[]): T {
-    return this.injectorService.invoke<T>(target.provide || target, locals, designParamTypes);
-  }
-
-  get routes(): {route: string; provider: any}[] {
-    return this.routeService.routes || [];
   }
 }

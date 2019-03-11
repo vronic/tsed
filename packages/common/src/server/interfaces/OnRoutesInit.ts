@@ -1,5 +1,5 @@
-import {IComponentScanned} from "./IComponentScanned";
+import {IProvider} from "@tsed/di";
 
 export interface OnRoutesInit {
-  $onRoutesInit(components: IComponentScanned[]): void | Promise<any>;
+  $onRoutesInit(components: Partial<IProvider<any>>[]): void | Promise<any>;
 }

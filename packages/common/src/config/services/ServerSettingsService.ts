@@ -1,5 +1,5 @@
 import {Env, getValue, Metadata, setValue} from "@tsed/core";
-import {IDISettings, Injectable, ProviderScope, registerFactory} from "@tsed/di";
+import {IDISettings, Injectable, IProvider, ProviderScope, registerFactory} from "@tsed/di";
 import * as Https from "https";
 import {$log} from "ts-log-debug";
 import {SERVER_SETTINGS} from "../constants/index";
@@ -367,6 +367,10 @@ export class ServerSettingsService implements IServerSettings, IDISettings {
     this.map.set("errors", options);
   }
 
+  get components() {
+    return this.map.get("components") || [];
+  }
+
   /**
    *
    * @param target
@@ -459,6 +463,18 @@ export class ServerSettingsService implements IServerSettings, IDISettings {
     }
 
     return value;
+  }
+
+  /**
+   *
+   * @param components
+   */
+  addComponents(components: Partial<IProvider<any>>) {
+    components = this.components.concat(components).filter((provider: IProvider<any>) => provider.provide);
+
+    this.map.set("components", components);
+
+    return this;
   }
 
   /**

@@ -7,4 +7,4 @@
  * @type {string}
  * @private
  */
-export const SERVER_SETTINGS = "tsed:server:settings";
+export const SERVER_SETTINGS = "module:settings";

@@ -3,6 +3,8 @@ import {inject} from "@tsed/testing";
 import {expect} from "chai";
 import * as Express from "express";
 import * as Sinon from "sinon";
+import {SinonStub} from "sinon";
+import {InjectorService} from "../../../../di/src";
 import {ControllerBuilder, ControllerProvider, ControllerService} from "../../../src/mvc";
 
 class Test {
@@ -66,48 +68,50 @@ describe("ControllerService", () => {
       this.ctrlBuildStub.should.have.been.calledWithExactly(this.injector);
     });
   });
+
   describe("mapComponents()", () => {
     class Test {
     }
 
+    let buildRoutersStub: SinonStub, mountRouterStub: SinonStub;
+    const sandbox = Sinon.createSandbox();
     before(() => {
-      this.buildRoutersStub = Sinon.stub(ControllerService.prototype as any, "buildRouters");
-      this.mountRouterStub = Sinon.stub(ControllerService.prototype as any, "mountRouter");
-      this.provider = {
+      buildRoutersStub = sandbox.stub(ControllerService.prototype as any, "buildRouters");
+      mountRouterStub = sandbox.stub(ControllerService.prototype as any, "mountRouter");
+    });
+
+    after(() => {
+      sandbox.restore();
+    });
+
+    it("should call provider.hasParent()", () => {
+      // GIVEN
+      const provider = {
         type: ProviderType.CONTROLLER,
         hasParent: Sinon.stub(false)
       };
-      this.injector = new Map();
-      this.injector.set(Test, this.provider);
 
-      this.service = new ControllerService(
-        this.injector,
+      const injector = new Map();
+      injector.set(Test, provider);
+
+      const service = new ControllerService(
+        injector as InjectorService,
         {express: "express"} as any,
         {routers: {global: "global"}} as any,
         {routeService: "routeService"} as any
       );
 
-      this.service.mapComponents([
-        {
-          endpoint: "endpoint",
-          classes: {
-            Test
-          }
-        }
-      ]);
-    });
+      const components = [{
+        provide: Test,
+        endpoint: "/endpoint"
+      }];
 
-    after(() => {
-      this.buildRoutersStub.restore();
-      this.mountRouterStub.restore();
-    });
+      // WHEN
+      (service as any).addComponents(components);
 
-    it("should call provider.hasParent()", () => {
-      this.provider.hasParent.should.have.been.calledWithExactly();
-    });
-
-    it("should call ControllerService.mountRouter()", () => {
-      this.mountRouterStub.should.have.been.calledWithExactly("endpoint", this.provider);
+      // THEN
+      provider.hasParent.should.have.been.calledWithExactly();
+      mountRouterStub.should.have.been.calledWithExactly("/endpoint", provider);
     });
   });
 

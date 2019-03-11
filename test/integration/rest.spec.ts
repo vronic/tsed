@@ -1,7 +1,7 @@
 import {ExpressApplication} from "@tsed/common";
 import {bootstrap, inject, TestContext} from "@tsed/testing";
-import * as SuperTest from "supertest";
 import {expect} from "chai";
+import * as SuperTest from "supertest";
 import {FakeServer} from "./app/FakeServer";
 
 describe("Rest", () => {
@@ -301,10 +301,10 @@ describe("Rest", () => {
       });
     });
 
-    describe("POST /rest/user/", () => {
+    describe("POST /rest/user", () => {
       it("should allow creation", done => {
         this.app
-          .post(`/rest/user/`)
+          .post(`/rest/user`)
           .send({name: "test", email: null, password: null})
           .expect(201)
           .end((err: any, response: any) => {
@@ -312,6 +312,20 @@ describe("Rest", () => {
               return done(err);
             }
             expect(JSON.parse(response.text)).to.deep.eq({name: "test", email: null, password: null});
+            done();
+          });
+      });
+
+      it("should allow creation (2)", done => {
+        this.app
+          .post(`/rest/user`)
+          .send({name: "test", email: "test@test.fr", password: "test1267"})
+          .expect(201)
+          .end((err: any, response: any) => {
+            if (err) {
+              throw err;
+            }
+            expect(JSON.parse(response.text)).to.deep.eq({name: "test", email: "test@test.fr", password: "test1267"});
             done();
           });
       });
@@ -360,17 +374,6 @@ describe("Rest", () => {
                 modelName: "User"
               }
             ]);
-            done();
-          });
-      });
-
-      it("should allow creation (2)", done => {
-        this.app
-          .post(`/rest/user/`)
-          .send({name: "test", email: "test@test.fr", password: "test1267"})
-          .expect(400)
-          .end((err: any, response: any) => {
-            expect(JSON.parse(response.text)).to.deep.eq({name: "test", email: "test@test.fr", password: "test1267"});
             done();
           });
       });

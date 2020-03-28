@@ -1,12 +1,14 @@
 import {inject, TestContext} from "@tsed/testing";
 import {expect} from "chai";
 import {Circular, IndirectCircular, JsonFoo2, Thingy} from "../../../../../test/helper/classes";
-import {JsonSchemesService} from "../../../src/jsonschema";
+import {JsonSchemesService, Property} from "../../../src/jsonschema";
+import {Allow, Required} from "../../../src/mvc/decorators";
 
 describe("JsonSchemesService", () => {
   let result: any;
+  beforeEach(TestContext.reset);
+  afterEach(TestContext.reset);
   describe("use case 1", () => {
-    after(TestContext.reset);
     it("should return a schema with his definitions", inject([JsonSchemesService], (service: JsonSchemesService) => {
       // GIVEN
       const result = service.getSchemaDefinition(JsonFoo2);

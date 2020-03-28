@@ -1,0 +1,20 @@
+{
+  "name": "@tsed/schema",
+  "version": "5.35.1",
+  "description": "JsonSchema module for Ts.ED Framework",
+  "main": "./lib/index.js",
+  "typings": "./lib/index.d.ts",
+  "dependencies": {
+    "@tsed/core": "5.35.1",
+    "tslib": "1.11.1"
+  },
+  "scripts": {
+    "build": "tsc --build tsconfig.compile.json",
+    "build:doc": "tsc --build tsconfig.doc.json"
+  },
+  "private": false,
+  "devDependencies": {
+    "swagger-spec-validator": "4.0.1"
+  },
+  "peerDependencies": {}
+}

@@ -1916,6 +1916,15 @@
     tslib "1.11.1"
     uuid "3.3.3"
 
+"@tsed/core@5.35.1":
+  version "5.35.1"
+  resolved "https://registry.yarnpkg.com/@tsed/core/-/core-5.35.1.tgz#7c3ba6f242340447ac5d2bf23b8e6b106dccf2e5"
+  integrity sha512-tuQJvz/WvwPrMqs1mimUjgMOlIkrOWAoBXAd69UhFaDad7HZvk3582CBBqxUGaRjzteUbH1asJXRHqnkef4Ylg==
+  dependencies:
+    reflect-metadata "^0.1.13"
+    source-map-support "0.5.16"
+    tslib "1.10.0"
+
 "@tsed/core@5.44.16":
   version "5.44.16"
   resolved "https://registry.yarnpkg.com/@tsed/core/-/core-5.44.16.tgz#85ee8d526436a9e639b571e7e285ccbdab663e0a"
@@ -15336,6 +15345,13 @@ svgo@^1.0.0:
     stable "^0.1.8"
     unquote "~1.1.1"
     util.promisify "~1.0.0"
+
+swagger-spec-validator@4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/swagger-spec-validator/-/swagger-spec-validator-4.0.1.tgz#88289eaeebbe751dbb6e04c23b1aef5e30255f07"
+  integrity sha512-UndV5G3SefK5YexzLwOS0A6fzRONN7Ac+2O2pXFmPzGxOYGn3AgKoo07R4XI5FZm1pqx3ZwwG2I91kl6LuQaMg==
+  dependencies:
+    yargs "^15.0.0"
 
 swagger-ui-dist@3.25.0, swagger-ui-dist@^3.25.0:
   version "3.25.0"

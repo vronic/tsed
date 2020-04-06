@@ -1,0 +1,63 @@
+{
+  "name": "@tsed/platform-koa",
+  "version": "5.44.16",
+  "description": "A TypeScript Framework on top of Koa",
+  "main": "./lib/index.js",
+  "typings": "./lib/index.d.ts",
+  "private": true,
+  "keywords": [
+    "Koa",
+    "TypeScript",
+    "typescript",
+    "Decorator",
+    "decorators",
+    "decorator",
+    "koa",
+    "Controller",
+    "Inject",
+    "ioc",
+    "di",
+    "mvc",
+    "swagger",
+    "swagger ui",
+    "ES2015",
+    "ES6",
+    "server",
+    "rest",
+    "api",
+    "validation"
+  ],
+  "author": {
+    "name": "Romain Lenzotti"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TypedProject/tsed/issues"
+  },
+  "homepage": "http://tsed.io/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TypedProject/tsed.git"
+  },
+  "scripts": {
+    "build": "tsc --build tsconfig.compile.json",
+    "build:doc": "tsc --build tsconfig.doc.json"
+  },
+  "dependencies": {
+    "@tsed/core": "5.44.17",
+    "@tsed/di": "5.44.17",
+    "@tsed/common": "5.44.17",
+    "koa-router": "8.0.8",
+    "koa-compose": "4.1.0"
+  },
+  "peerDependencies": {
+    "@types/koa": "2",
+    "koa": "^2"
+  },
+  "devDependencies": {
+    "@types/koa": "2.11.3",
+    "@types/koa-router": "7.4.0",
+    "@types/koa-compose": "3.2.5",
+    "koa": "2.11.0"
+  }
+}

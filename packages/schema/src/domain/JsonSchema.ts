@@ -140,7 +140,7 @@ export class JsonSchema extends Map<string, any> {
   }
 
   ignore(bool: boolean = true) {
-    this._ignore = true;
+    this._ignore = bool;
 
     return this;
   }

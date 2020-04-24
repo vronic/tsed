@@ -1,5 +1,5 @@
 import {DecoratorTypes, getDecoratorType} from "@tsed/core";
-import {StoredJson} from "../domain/StoredJson";
+import {StoredJson} from "../../domain/StoredJson";
 
 /**
  * Add a name metadata on the decorated element.

@@ -33,13 +33,13 @@ export function CollectionOf(type: any) {
   let contains: boolean = false;
 
   const decorator = (...args: any) => {
-    const storedSchema = StoredJson.from(...args);
-    storedSchema.itemSchema.assign({type});
-    storedSchema.schema.assign(schema);
+    const storedJson = StoredJson.from(...args);
+    storedJson.itemSchema.assign({type});
+    storedJson.schema.assign(schema);
 
-    if (storedSchema.isArray && contains) {
-      storedSchema.schema.set("contains", storedSchema.schema.get("items"));
-      storedSchema.schema.delete("items");
+    if (storedJson.isArray && contains) {
+      storedJson.schema.set("contains", storedJson.schema.get("items"));
+      storedJson.schema.delete("items");
     }
   };
 

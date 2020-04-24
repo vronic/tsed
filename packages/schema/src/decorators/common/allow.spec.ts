@@ -1,6 +1,6 @@
 import * as Ajv from "ajv";
 import {expect} from "chai";
-import {StoredJson} from "../domain/StoredJson";
+import {StoredJson} from "../../domain/StoredJson";
 import {Allow} from "./allow";
 import {Property} from "./property";
 import {Required} from "./required";

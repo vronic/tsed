@@ -1,9 +1,6 @@
+import {In, MinLength, Name, Required} from "@tsed/schema";
 import {expect} from "chai";
 import {StoredJson} from "./StoredJson";
-import {In} from "../decorators/operations/in";
-import {MinLength} from "../decorators/minLength";
-import {Name} from "../decorators/name";
-import {Required} from "../decorators/required";
 
 describe("JsonParameter", () => {
   it("should declare parameter", () => {

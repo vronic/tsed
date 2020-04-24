@@ -1,12 +1,12 @@
 import {expect} from "chai";
-import {getJsonSchema} from "../utils/getJsonSchema";
-import {Const} from "./const";
+import {getJsonSchema} from "../../utils/getJsonSchema";
+import {Default} from "./default";
 
-describe("@Const", () => {
+describe("@Default", () => {
   it("should declare prop", () => {
     // WHEN
     class Model {
-      @Const("10")
+      @Default("10")
       num: string = "10";
 
       constructor() {}
@@ -16,7 +16,7 @@ describe("@Const", () => {
     expect(getJsonSchema(Model)).to.deep.equal({
       properties: {
         num: {
-          const: "10",
+          default: "10",
           type: "string"
         }
       },

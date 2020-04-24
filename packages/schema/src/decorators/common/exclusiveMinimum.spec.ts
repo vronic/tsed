@@ -1,12 +1,12 @@
 import {expect} from "chai";
-import {StoredJson} from "../domain/StoredJson";
-import {Required} from "./required";
+import {StoredJson} from "../../domain/StoredJson";
+import {ExclusiveMinimum} from "./exclusiveMinimum";
 
-describe("@Required", () => {
-  it("should declare required field", () => {
+describe("@ExclusiveMinimum", () => {
+  it("should declare exclusiveMinimum value", () => {
     // WHEN
     class Model {
-      @Required()
+      @ExclusiveMinimum(0, true)
       num: number;
     }
 
@@ -16,10 +16,10 @@ describe("@Required", () => {
     expect(classSchema.schema.toJSON()).to.deep.equal({
       properties: {
         num: {
+          exclusiveMinimum: 0,
           type: "number"
         }
       },
-      required: ["num"],
       type: "object"
     });
   });

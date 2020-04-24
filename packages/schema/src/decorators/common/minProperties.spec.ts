@@ -1,13 +1,13 @@
 import {getJsonSchema, In, MethodPath} from "@tsed/schema";
 import {expect} from "chai";
-import {getSpec} from "../utils/getSpec";
-import {MaxProperties} from "./maxProperties";
+import {getSpec} from "../../utils/getSpec";
+import {MinProperties} from "./minProperties";
 
-describe("@MaxProperties", () => {
-  it("should declare max value (any)", () => {
+describe("@MinProperties", () => {
+  it("should declare min value (any)", () => {
     // WHEN
     class Model {
-      @MaxProperties(10)
+      @MinProperties(10)
       prop: any;
     }
 
@@ -15,17 +15,17 @@ describe("@MaxProperties", () => {
     expect(getJsonSchema(Model)).to.deep.equal({
       properties: {
         prop: {
-          maxProperties: 10,
+          minProperties: 10,
           type: "object"
         }
       },
       type: "object"
     });
   });
-  it("should declare max value (Map<any>)", () => {
+  it("should declare min value (Map<any>)", () => {
     // WHEN
     class Model {
-      @MaxProperties(10)
+      @MinProperties(10)
       prop: Map<string, any>;
     }
 
@@ -33,29 +33,29 @@ describe("@MaxProperties", () => {
     expect(getJsonSchema(Model)).to.deep.equal({
       properties: {
         prop: {
-          maxProperties: 10,
+          minProperties: 10,
           type: "object"
         }
       },
       type: "object"
     });
   });
-  it("should declare max value on class", () => {
+  it("should declare min value on class", () => {
     // WHEN
-    @MaxProperties(10)
+    @MinProperties(10)
     class Model {}
 
     // THEN
     expect(getJsonSchema(Model)).to.deep.equal({
-      maxProperties: 10,
+      minProperties: 10,
       type: "object"
     });
   });
-  it("should declare max value on param", () => {
+  it("should declare min value on param", () => {
     // WHEN
     class Model {
       @MethodPath("POST", "/")
-      method(@In("body") @MaxProperties(10) test: any) {}
+      method(@In("body") @MinProperties(10) test: any) {}
     }
 
     // THEN
@@ -70,7 +70,7 @@ describe("@MaxProperties", () => {
                 name: "body",
                 required: false,
                 schema: {
-                  maxProperties: 10,
+                  minProperties: 10,
                   type: "object"
                 }
               }
@@ -89,12 +89,12 @@ describe("@MaxProperties", () => {
     // WHEN
     let actualError: any;
     try {
-      MaxProperties(-1);
+      MinProperties(-1);
     } catch (er) {
       actualError = er;
     }
 
     // THEN
-    expect(actualError.message).to.equal("The value of maxProperties MUST be a non-negative integer.");
+    expect(actualError.message).to.equal("The value of minProperties MUST be a non-negative integer.");
   });
 });

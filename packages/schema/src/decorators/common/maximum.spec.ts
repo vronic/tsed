@@ -1,13 +1,13 @@
 import {expect} from "chai";
-import {StoredJson} from "../domain/StoredJson";
-import {CollectionOf} from "./collections/collectionOf";
-import {Min} from "./minimum";
+import {StoredJson} from "../../domain/StoredJson";
+import {CollectionOf} from "../collections/collectionOf";
+import {Max} from "./maximum";
 
-describe("@Minimum", () => {
-  it("should declare minimum value", () => {
+describe("@Maximum", () => {
+  it("should declare maximum value", () => {
     // WHEN
     class Model {
-      @Min(0)
+      @Max(0)
       num: number;
     }
 
@@ -17,7 +17,7 @@ describe("@Minimum", () => {
     expect(classSchema.schema.toJSON()).to.deep.equal({
       properties: {
         num: {
-          minimum: 0,
+          maximum: 0,
           type: "number"
         }
       },
@@ -25,10 +25,10 @@ describe("@Minimum", () => {
     });
   });
 
-  it("should declare exclusive minimum value", () => {
+  it("should declare exclusive maximum value", () => {
     // WHEN
     class Model {
-      @Min(0, true)
+      @Max(0, true)
       num: number;
     }
 
@@ -38,18 +38,17 @@ describe("@Minimum", () => {
     expect(classSchema.schema.toJSON()).to.deep.equal({
       properties: {
         num: {
-          exclusiveMinimum: 0,
+          exclusiveMaximum: 0,
           type: "number"
         }
       },
       type: "object"
     });
   });
-
-  it("should declare minimum value (collection)", () => {
+  it("should declare maximum value (collection)", () => {
     // WHEN
     class Model {
-      @Min(0)
+      @Max(0)
       @CollectionOf(Number)
       num: number[];
     }
@@ -62,7 +61,7 @@ describe("@Minimum", () => {
         num: {
           type: "array",
           items: {
-            minimum: 0,
+            maximum: 0,
             type: "number"
           }
         }

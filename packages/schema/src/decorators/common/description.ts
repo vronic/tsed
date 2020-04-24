@@ -1,5 +1,5 @@
 import {DecoratorTypes, getDecoratorType, UnsupportedDecoratorType} from "@tsed/core";
-import {StoredJson} from "../domain/StoredJson";
+import {StoredJson} from "../../domain/StoredJson";
 /**
  * Add a description to the class, method or property
  *

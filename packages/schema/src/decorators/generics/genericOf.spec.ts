@@ -162,4 +162,25 @@ describe("@GenericOf", () => {
       type: "object"
     });
   });
+
+  it("should generate the returned JsonSchema", () => {
+    @Generics("T")
+    class Submission<T> {
+      @Property()
+      _id: string;
+
+      @Property("T")
+      data: T;
+    }
+
+    class Product {
+      @Property()
+      label: string;
+    }
+
+    class Controller {
+      @GenericOf(Product)
+      getList() {}
+    }
+  });
 });

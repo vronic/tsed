@@ -1,4 +1,4 @@
-import {Property} from "../../src/decorators/property";
+import {Property} from "../../src/decorators/common/property";
 import {User} from "./User";
 
 export class Post {

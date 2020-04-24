@@ -1,7 +1,7 @@
 import {MethodPath} from "@tsed/schema";
 import {expect} from "chai";
-import {getJsonSchema} from "../utils/getJsonSchema";
-import {getSpec} from "../utils/getSpec";
+import {getJsonSchema} from "../../utils/getJsonSchema";
+import {getSpec} from "../../utils/getSpec";
 import {Description} from "./description";
 
 describe("@Description", () => {

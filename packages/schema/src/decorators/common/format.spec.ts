@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import {getJsonSchema} from "../utils/getJsonSchema";
+import {getJsonSchema} from "../../utils/getJsonSchema";
 import {DateFormat, DateTime, Email, Format, TimeFormat, Uri} from "./format";
 
 describe("@Format", () => {

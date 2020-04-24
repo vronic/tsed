@@ -1,5 +1,5 @@
 import {applyDecorators, DecoratorTypes} from "@tsed/core";
-import {StoredJson} from "../domain/StoredJson";
+import {StoredJson} from "../../domain/StoredJson";
 import {Property} from "./property";
 
 function applyStringRule(storedJson: StoredJson, values: any[]) {

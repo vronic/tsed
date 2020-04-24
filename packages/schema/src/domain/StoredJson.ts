@@ -107,7 +107,7 @@ export class StoredJson implements IStoredJsonOptions {
    *
    * @returns {Type<any>}
    */
-  get type(): Type<any> {
+  get type(): Type<any> | any {
     return this._type;
   }
 
@@ -115,7 +115,7 @@ export class StoredJson implements IStoredJsonOptions {
    *
    * @param value
    */
-  set type(value: Type<any>) {
+  set type(value: Type<any> | any) {
     this._type = value;
     this.build();
   }
@@ -295,6 +295,7 @@ export class StoredJson implements IStoredJsonOptions {
           break;
         case DecoratorTypes.METHOD:
           type = Store.getReturnType(this.target, this.propertyKey);
+          break;
       }
 
       if (isCollection(type)) {
@@ -354,17 +355,27 @@ export class StoredJson implements IStoredJsonOptions {
 
   protected createOperation(): JsonOperation {
     const parentStoredSchema = this.parent;
-    const properties = parentStoredSchema.schema.get("properties");
 
-    let operation: JsonOperation = properties[this.propertyName];
+    // response schema of the method
+    let operation = this.operation;
 
     if (!operation) {
       operation = new JsonOperation();
       parentStoredSchema.children.push(this);
     }
 
-    // response schema of the method
-    this._schema = new JsonSchema();
+    if (isCollection(this._type)) {
+      this.collectionType = this._type;
+      delete this._type;
+    }
+
+    this._schema = JsonSchema.from({
+      type: this.collectionType || this.type
+    });
+
+    if (this.collectionType) {
+      this._schema.itemSchema(this.type);
+    }
 
     parentStoredSchema.schema.addProperties(this.propertyName, this.schema);
 

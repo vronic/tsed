@@ -1,5 +1,5 @@
 import {applyDecorators} from "@tsed/core";
-import {StoredJson} from "../domain/StoredJson";
+import {StoredJson} from "../../domain/StoredJson";
 import {Property} from "./property";
 import {StoredJsonFn} from "./storedJsonFn";
 

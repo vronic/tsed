@@ -1,4 +1,4 @@
-import {StoredJsonFn} from "../storedJsonFn";
+import {StoredJsonFn} from "../common/storedJsonFn";
 
 /**
  *

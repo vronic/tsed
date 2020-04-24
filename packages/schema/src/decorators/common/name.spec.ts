@@ -1,6 +1,6 @@
 import {SpecTypes} from "@tsed/schema";
 import {expect} from "chai";
-import {getJsonSchema} from "../utils/getJsonSchema";
+import {getJsonSchema} from "../../utils/getJsonSchema";
 import {Name} from "./name";
 
 describe("@Name", () => {

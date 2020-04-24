@@ -1,12 +1,12 @@
 import {expect} from "chai";
-import {StoredJson} from "../domain/StoredJson";
-import {ExclusiveMaximum} from "./exclusiveMaximum";
+import {StoredJson} from "../../domain/StoredJson";
+import {Required} from "./required";
 
-describe("@ExclusiveMaximum", () => {
-  it("should declare exclusiveMaximum value", () => {
+describe("@Required", () => {
+  it("should declare required field", () => {
     // WHEN
     class Model {
-      @ExclusiveMaximum(0, true)
+      @Required()
       num: number;
     }
 
@@ -16,10 +16,10 @@ describe("@ExclusiveMaximum", () => {
     expect(classSchema.schema.toJSON()).to.deep.equal({
       properties: {
         num: {
-          exclusiveMaximum: 0,
           type: "number"
         }
       },
+      required: ["num"],
       type: "object"
     });
   });

@@ -1,5 +1,5 @@
-import {DecoratorParameters} from "@tsed/core/src";
-import {StoredJson} from "../domain";
+import {DecoratorParameters} from "@tsed/core";
+import {StoredJson} from "../../domain";
 
 /**
  *

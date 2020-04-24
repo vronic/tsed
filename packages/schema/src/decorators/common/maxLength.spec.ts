@@ -1,7 +1,7 @@
 import {expect} from "chai";
-import {StoredJson} from "../domain/StoredJson";
-import {getJsonSchema} from "../utils/getJsonSchema";
-import {CollectionOf} from "./collections/collectionOf";
+import {StoredJson} from "../../domain/StoredJson";
+import {getJsonSchema} from "../../utils/getJsonSchema";
+import {CollectionOf} from "../collections/collectionOf";
 import {MaxLength} from "./maxLength";
 
 describe("@MaxLength", () => {

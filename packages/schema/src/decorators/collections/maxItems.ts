@@ -1,4 +1,4 @@
-import {StoredJsonFn} from "../storedJsonFn";
+import {StoredJsonFn} from "../common/storedJsonFn";
 
 /**
  * The value `maxItems` MUST be a non-negative integer.

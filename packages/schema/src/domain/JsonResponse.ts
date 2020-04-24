@@ -1,4 +1,5 @@
 import {IJsonHeader, IJsonMediaType, IJsonSerializerOptions} from "../interfaces";
+import {serializeItem} from "../utils/serialize";
 import {JsonMap} from "./JsonMap";
 import {JsonSchema} from "./JsonSchema";
 import {SpecTypes} from "./SpecTypes";
@@ -67,7 +68,7 @@ export class JsonResponse extends JsonMap<IJsonResponseOptions> {
 
     if (options.spec !== SpecTypes.OPENAPI) {
       delete response.content;
-      response.schema = this._schema.toJSON(options);
+      response.schema = serializeItem(this._schema, options);
     }
 
     return response;

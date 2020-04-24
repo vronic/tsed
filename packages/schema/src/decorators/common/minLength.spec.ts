@@ -1,6 +1,6 @@
 import {expect} from "chai";
-import {StoredJson} from "../domain/StoredJson";
-import {CollectionOf} from "./collections/collectionOf";
+import {StoredJson} from "../../domain/StoredJson";
+import {CollectionOf} from "../collections/collectionOf";
 import {MinLength} from "./minLength";
 
 describe("@MinLength", () => {

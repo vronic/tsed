@@ -20,7 +20,7 @@ export function createRef(value: any, options: IJsonSerializerOptions = {}) {
     });
   }
 
-  if (!options.schemas[name]) {
+  if (options.schemas && !options.schemas[name]) {
     options.schemas[name] = {}; // avoid infinite calls
     options.schemas[name] = serialize(
       storedJson.schema,

@@ -1,8 +1,5 @@
+import {CollectionOf, getJsonSchema, Property, Required} from "@tsed/schema";
 import {expect} from "chai";
-import {CollectionOf} from "../decorators/collections/collectionOf";
-import {Property} from "../decorators/property";
-import {Required} from "../decorators/required";
-import {getJsonSchema} from "./getJsonSchema";
 
 describe("getJsonSchema", () => {
   it("should declare all schema correctly (basic)", () => {

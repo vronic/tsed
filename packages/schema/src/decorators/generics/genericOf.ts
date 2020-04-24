@@ -65,11 +65,11 @@ import {StoredJson} from "../../domain/StoredJson";
  * @schema
  */
 export function GenericOf(...generics: Type<any>[]) {
-  const nestedGenerics: Type<any>[][] = [];
+  const nestedGenerics: Type<any>[][] = [generics];
 
   const decorator = (...args: any) => {
     const storedSchema = StoredJson.from(...args);
-    storedSchema.schema.nestedGenerics = [generics].concat(nestedGenerics);
+    storedSchema.schema.nestedGenerics = nestedGenerics;
   };
 
   decorator.Nested = (...generics: any) => {
